@@ -20,7 +20,9 @@
      prices changed adds the prices without the "ORDER CHANGED" warning.
      1.3 (9 Nov 2026): 🗺 PokPok ↔ Vrich map (from VHM Scan Verify) — built from the lists online + 🔗 links, published to
      scan_meta/stockmap + scan_catalog/map_<ver>_<i> after every PokPok / Vrich upload and 🔗 links / Same words change (only when it
-     really changed). The Stock Count page (count.html) reads it. Download as CSV or as a map file. -->
+     really changed). The Stock Count page (count.html) reads it. Download as CSV or as a map file. 
+     9 Nov 2026: moved to the new Firebase project vhshop-scan-2 (the old vh-shop-scan could no longer be managed). Data copied
+     with migrate.html. A config of the old project saved on a device is ignored. -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1420;--card:#192032;--card2:#212a40;--line:#2c3654;--tx:#eef1f8;--mut:#93a0bf;--ok:#16a34a;--bad:#dc2626;--warn:#b45309;--acc:#4f8cff;--r:14px}
@@ -411,15 +413,15 @@ window.VHS = VHS;
 'use strict';
 /* ---------- VH Shop Firebase project: paste the web-app config here once (or use the box on the page) ---------- */
 const BUILT_IN_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyABDP7FFND1ZSyBwX5BXkK_LwvDU-Vv6iY",
-  authDomain: "vh-shop-scan.firebaseapp.com",
-  projectId: "vh-shop-scan",
-  storageBucket: "vh-shop-scan.firebasestorage.app",
-  messagingSenderId: "800488247429",
-  appId: "1:800488247429:web:0cd9f1b89d6ccd4f8999ec"
+  apiKey: "AIzaSyCmwiDOP6klBYCqE2Ioz7fBvSrgNfKWjoc",
+  authDomain: "vhshop-scan-2.firebaseapp.com",
+  projectId: "vhshop-scan-2",
+  storageBucket: "vhshop-scan-2.firebasestorage.app",
+  messagingSenderId: "71596336245",
+  appId: "1:71596336245:web:ae7dd99d3c3440d905443c"
 };
 const V = VHS, COL = V.COL, $ = id => document.getElementById(id), esc = V.esc, nz = V.nz, clean = V.clean;
-const CFG = V.LS.get('fbconfig', null) || BUILT_IN_FIREBASE_CONFIG;
+const CFG = (c => c && c.projectId !== 'vh-shop-scan' ? c : BUILT_IN_FIREBASE_CONFIG)(V.LS.get('fbconfig', null));      // 9 Nov 2026: moved to vhshop-scan-2 — a saved config of the old project is ignored
 const store = V.makeStore(CFG);
 const ST = { loose: new Map(), links: new Map(), user: null, meta: null, report: null, settings: null, cat: { pok: null, vrich: null }, issues: [] };
 const fmt = n => (n || 0).toLocaleString('en-US');

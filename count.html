@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7">
 <title>VH Shop Stock Count</title>
-<!-- VH Shop Stock Count 1.3 (9 Nov 2026) — copy of VHM Stock Count 1.3 for VH Shop (project vh-shop-scan; the map comes from
+<!-- VH Shop Stock Count 1.3 (9 Nov 2026) — copy of VHM Stock Count 1.3 for VH Shop (project vhshop-scan-2; the map comes from
      scan_meta/stockmap, published by the VH Shop upload page 1.3; counts online in scan_counts). Same as VHM.
      · 1.3: ☁ counts are saved online so the manager can open them on a laptop.
      · The name is required before scanning. Each phone keeps its own count (id = this device + start time), never mixed with another's.
@@ -190,8 +190,8 @@ function index(m) {
   (m.vonly || []).forEach(v => add(vBySale, nz(v[1]), v));
   return { byNum, byStock, bySale, byPok, vBySale };
 }
-/* ---------- the map online (VH Shop Scan, project vh-shop-scan): read-only, anonymous — the same access the packing phones use ---------- */
-const SCAN_CFG = { apiKey: "AIzaSyABDP7FFND1ZSyBwX5BXkK_LwvDU-Vv6iY", authDomain: "vh-shop-scan.firebaseapp.com", projectId: "vh-shop-scan", storageBucket: "vh-shop-scan.firebasestorage.app", messagingSenderId: "800488247429", appId: "1:800488247429:web:0cd9f1b89d6ccd4f8999ec" };
+/* ---------- the map online (VH Shop Scan, project vhshop-scan-2): read-only, anonymous — the same access the packing phones use ---------- */
+const SCAN_CFG = { apiKey: "AIzaSyCmwiDOP6klBYCqE2Ioz7fBvSrgNfKWjoc", authDomain: "vhshop-scan-2.firebaseapp.com", projectId: "vhshop-scan-2", storageBucket: "vhshop-scan-2.firebasestorage.app", messagingSenderId: "71596336245", appId: "1:71596336245:web:ae7dd99d3c3440d905443c" };
 let FB = null, lastCheck = 0, checking = null, MAPERR = '', FBAUTH = null;
 // the Firebase app + the first sign-in state (a manager who logged in on this device stays logged in)
 function fbInit() {
