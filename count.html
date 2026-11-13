@@ -562,14 +562,14 @@ document.getElementById('picall').onclick = function () { run(async function () 
 var QURL = '';
 async function qbits() {
   var th = document.getElementById('thermal'), cap = document.createElement('div'); cap.className = 'qcap';
-  var c = th.cloneNode(true); c.style.display = 'block'; cap.appendChild(c); document.body.appendChild(cap);
+  var c = th.cloneNode(true); c.style.display = 'block'; c.classList.add('q576'); cap.appendChild(c); document.body.appendChild(cap);
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    var w = c.getBoundingClientRect().width, cv = await html2canvas(c, { scale: 576 / w, backgroundColor: '#ffffff', logging: false });
+    var cv = await html2canvas(c, { scale: 1, width: 576, windowWidth: 1200, backgroundColor: '#ffffff', logging: false });
     var W = 576, H = Math.max(1, Math.round(cv.height * W / cv.width)), o = document.createElement('canvas'); o.width = W; o.height = H;
     var g = o.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.drawImage(cv, 0, 0, W, H);
     var px = g.getImageData(0, 0, W, H).data, bpr = W / 8, bits = new Uint8Array(bpr * H), first = -1, last = -1;
-    for (var y = 0; y < H; y++) { var any = false; for (var x = 0; x < W; x++) { var i = (y * W + x) * 4; if ((px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 < 140) { bits[y * bpr + (x >> 3)] |= 0x80 >> (x & 7); any = true; } } if (any) { if (first < 0) first = y; last = y; } }
+    for (var y = 0; y < H; y++) { var any = false; for (var x = 0; x < W; x++) { var i = (y * W + x) * 4; if ((px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 < 150) { bits[y * bpr + (x >> 3)] |= 0x80 >> (x & 7); any = true; } } if (any) { if (first < 0) first = y; last = y; } }
     if (first < 0) throw new Error('nothing to print');
     var top = Math.max(0, first - 6), bot = Math.min(H - 1, last + 6), rows = bot - top + 1, data = bits.slice(top * bpr, (bot + 1) * bpr);
     var comp = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
@@ -641,26 +641,24 @@ tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-siz
 .one{position:absolute;right:4px;top:3px;font:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid #888;background:#fff;cursor:pointer}
 .cap{position:absolute;left:-10000px;top:0;width:800px;background:#fff;padding:12px}
 #pmsg{font-size:13px;color:#166534;margin-left:6px}
-.qcap{position:absolute;left:-10000px;top:0;width:80mm;background:#fff}
+.qcap{position:absolute;left:-10000px;top:0;width:576px;background:#fff}
 #qgo{display:none;margin-top:8px;font:inherit;font-size:18px;padding:10px 18px;border-radius:10px;border:0;background:#15803d;color:#fff;font-weight:700}
-#thermal{display:none;width:100%;padding:1mm 2mm;color:#000;background:#fff}
+#thermal{--u:1px;--ln:0.5px;--lb:1.2px;display:none;width:100%;padding:calc(var(--u)*4) calc(var(--u)*7);color:#000;background:#fff}
+#thermal.q576{--u:1.905px;--ln:1px;--lb:2px;width:576px;box-sizing:border-box}
 #thermal *{color:#000;background:#fff}
-.thd{font-size:11px;line-height:1.3;text-align:center;margin-bottom:1mm}.thd b{font-size:14px}
-.tlg{font-size:9px;margin-bottom:1mm}
-table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 1.5mm;break-inside:avoid;page-break-inside:avoid}
-table.tb td{border:1px solid #000;height:auto;padding:0 1px;text-align:center;font-size:11px;line-height:1.2;word-break:break-word}
-td.tcode{text-align:left!important;padding:1px 3px!important}td.tcode b{font-size:16px}td.tcode span{float:right;font-size:12px;font-weight:700;line-height:20px}
-td.tcol{font-weight:700;font-size:11px}
-td.tcode .tprice{float:none;display:inline-block;margin-left:6px;font-size:12px;line-height:20px;font-weight:700}
-td.tsz small{display:block;font-size:8px;font-weight:700;line-height:1;white-space:nowrap}td.tsz{font-weight:700}td.tq{font-size:13px;font-weight:700}
-td.tq small{display:block;font-size:8px;font-weight:700;line-height:1;white-space:nowrap}
-tr.ttot td.tsz{font-size:9px;white-space:nowrap;padding:0}
-#thermal td.tdiff{border:2px solid #000!important}
-#thermal span.tdiff{border:1.5px solid #000;border-radius:3px}
-#thermal .tlg span.tdiff{padding:0 3px}
-tr.ttot td{border-top-width:2px}
-td.tcode span.tpad{padding:0 4px}
-.tend{text-align:center;font-size:11px;padding:2mm 0 6mm}
+#thermal .thd{font-size:calc(var(--u)*11);line-height:1.3;text-align:center;margin-bottom:calc(var(--u)*4)}#thermal .thd b{font-size:calc(var(--u)*14)}
+#thermal .tlg{font-size:calc(var(--u)*9);margin-bottom:calc(var(--u)*4)}
+#thermal table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 calc(var(--u)*6);break-inside:avoid;page-break-inside:avoid}
+#thermal table.tb td{border:var(--ln) solid #000;height:auto;padding:0 var(--u);text-align:center;font-size:calc(var(--u)*11);line-height:1.2;word-break:break-word}
+#thermal table.tb td.tcode{text-align:left;padding:var(--u) calc(var(--u)*3)}#thermal table.tb td.tcode b{font-size:calc(var(--u)*16)}#thermal table.tb td.tcode span{float:right;font-size:calc(var(--u)*12);font-weight:700;line-height:calc(var(--u)*20)}
+#thermal table.tb td.tcol{font-weight:700;font-size:calc(var(--u)*11)}
+#thermal table.tb td.tcode .tprice{float:none;display:inline-block;margin-left:calc(var(--u)*6);font-size:calc(var(--u)*12);line-height:calc(var(--u)*20);font-weight:700}
+#thermal table.tb td.tsz small,#thermal table.tb td.tq small{display:block;font-size:calc(var(--u)*8);font-weight:700;line-height:1;white-space:nowrap}#thermal table.tb td.tsz{font-weight:700}#thermal table.tb td.tq{font-size:calc(var(--u)*13);font-weight:700}
+#thermal table.tb tr.ttot td.tsz{font-size:calc(var(--u)*9);white-space:nowrap;padding:0}
+#thermal table.tb td.tdiff{border:var(--lb) solid #000}
+#thermal span.tdiff{border:var(--ln) solid #000;border-radius:calc(var(--u)*3)}
+#thermal .tlg span.tdiff{padding:0 calc(var(--u)*3)}
+#thermal table.tb td.tcode span.tpad{padding:0 calc(var(--u)*4)}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
 </head><body>
 <div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button> <button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button> <button id="picall">🖼 Save as picture · រក្សាទុកជារូបភាព</button><span id="pmsg"></span><br><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button>
