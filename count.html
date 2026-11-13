@@ -584,7 +584,7 @@ function thermalHtml(blocks, staff, stamp) {
     }).join('') + '</table>';
   };
   return `<div id="thermal"><div class="thd"><b>VH Shop · តារាងទំហំ</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` +
-    `<div class="tlg"><span class="tdiff">&nbsp;5&nbsp;</span> = ខុសពី PokPok · PP = ចំនួន PokPok</div>` + blocks.map(blk).join('') + '<div class="tend">— ចប់ · end —</div></div>';
+    `<div class="tlg"><span class="tdiff">&nbsp;5&nbsp;</span> = ខុសពី PokPok · PP = ចំនួន PokPok</div>` + blocks.map(blk).join('') + '</div>';
 }
 function sizeChartHtml(blocks, staff, stamp) {
   const body = blocks.map(b => `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 ${esc(b.sale)}</button><table><tr><td class="code">${esc(b.sale)}</td>${'<td></td>'.repeat(PER_BAND * 2 - 1)}</tr>` + b.bands.map((band, bi) => {
@@ -622,7 +622,9 @@ td.tcode .tprice{float:none;display:inline-block;margin-left:8px;font-size:14px;
 td.tsz small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}td.tsz{font-weight:700}td.tq{font-size:16px;font-weight:700}
 td.tq small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
 tr.ttot td.tsz{font-size:11px;white-space:nowrap;padding:1px 0}
-#thermal .tdiff,#thermal .tdiff small{background:#000!important;color:#fff!important}
+#thermal td.tdiff{border:3px solid #000!important}
+#thermal span.tdiff{border:2px solid #000;border-radius:4px}
+#thermal .tlg span.tdiff{padding:0 3px}
 tr.ttot td{border-top-width:3px}
 td.tcode span.tpad{padding:0 4px}
 .tend{text-align:center;font-size:11px;padding:2mm 0 6mm}
