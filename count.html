@@ -475,7 +475,7 @@ function sizeChart(codes) {
     variantsOf(s).forEach(it => {
       const c = C.counts[nz(it[0])] || 0, sys = it[4]; if (!c && !(sys > 0)) return;
       const { col, size } = colourSize(it), m = cols.get(col) || cols.set(col, new Map()).get(col);
-      const r = m.get(size) || m.set(size, { size, c: 0, sys: null }).get(size); r.c += c; if (sys != null) r.sys = (r.sys || 0) + sys;
+      const r = m.get(size) || m.set(size, { size, c: 0, sys: null, p: null }).get(size); r.c += c; if (sys != null) r.sys = (r.sys || 0) + sys; if (r.p == null && it[5] != null) r.p = +it[5];
     });
     const list = [...cols.entries()].map(([col, m]) => { const rows = [...m.values()].sort((a, b) => szRank(a.size) - szRank(b.size) || String(a.size).localeCompare(String(b.size))); return { col, rows, total: rows.reduce((a, r) => a + r.c, 0) }; });
     const bands = []; for (let i = 0; i < list.length; i += PER_BAND) bands.push(list.slice(i, i + PER_BAND));
@@ -559,6 +559,27 @@ document.getElementById('picall').onclick = function () { run(async function () 
 }); };
 document.querySelectorAll('.one').forEach(function (b) { b.onclick = function () { var blk = b.closest('.blk'); run(async function () { await give([await snap([hd, blk], 'vhshop-size-chart-' + blk.dataset.code + '-' + STAMP + '.png')]); }); }; });
 `;
+// 🖨 print layout for the SUNMI V2s PLUS built-in printer (80 mm roll): black and white only (no fills or greys — the
+// thermal head turns them into dots), only the colours a code really has (no empty colour slots, no blank row to write in),
+// at most 4 colours side by side. A number that differs from PokPok is printed white on black with the PokPok qty under it.
+const TH_BAND = 4;
+const money = p => Number.isInteger(p) ? p.toLocaleString('en-US') : (Math.round(p * 100) / 100).toFixed(2);
+function thermalHtml(blocks, staff, stamp) {
+  const blk = b => {
+    const list = b.bands.flat(), bands = []; for (let i = 0; i < list.length; i += TH_BAND) bands.push(list.slice(i, i + TH_BAND));
+    // 💲 PokPok price: one price for the whole code goes next to the code; when sizes/colours differ, each size shows its own
+    const prices = [...new Set(list.flatMap(x => x.rows.map(y => y.p)).filter(p => p != null))], each = prices.length > 1;
+    const one = prices.length === 1 ? `<span class="tprice">តម្លៃ ${esc(money(prices[0]))}</span>` : each ? '<span class="tprice">តម្លៃ តាមទំហំ</span>' : '';
+    return `<table class="tb"><tr><td class="tcode" colspan="${Math.min(list.length, TH_BAND) * 2}"><b>${esc(b.sale)}</b>${one}<span>សរុប ${b.total}</span></td></tr>` + bands.map(band => {
+      let h = '<tr>' + band.map(x => `<td class="tcol" colspan="2">${esc(x.col)}</td>`).join('') + '</tr>';
+      const n = Math.max(...band.map(x => x.rows.length));
+      for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="tsz">${esc(y.size)}${each && y.p != null ? `<small>${esc(money(y.p))}</small>` : ''}</td><td class="tq${isDiff(y) ? ' tdiff' : ''}">${y.c}${isDiff(y) ? `<small>PP ${y.sys}</small>` : ''}</td>` : '<td class="tsz"></td><td class="tq"></td>'; }).join('') + '</tr>';
+      return h + '<tr class="ttot">' + band.map(x => `<td class="tsz">សរុប</td><td class="tq">${x.total}</td>`).join('') + '</tr>';
+    }).join('') + '</table>';
+  };
+  return `<div id="thermal"><div class="thd"><b>VH Shop · តារាងទំហំ</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` +
+    `<div class="tlg"><span class="tdiff">&nbsp;5&nbsp;</span> = ខុសពី PokPok · PP = ចំនួន PokPok</div>` + blocks.map(blk).join('') + '<div class="tend">— ចប់ · end —</div></div>';
+}
 function sizeChartHtml(blocks, staff, stamp) {
   const body = blocks.map(b => `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 ${esc(b.sale)}</button><table><tr><td class="code">${esc(b.sale)}</td>${'<td></td>'.repeat(PER_BAND * 2 - 1)}</tr>` + b.bands.map((band, bi) => {
     let h = '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i]; if (!x) return '<td></td><td></td>'; const [f, t] = colourOf(x.col); return `<td class="col"><span style="background:#${f};color:#${t}">${esc(x.col)}</span></td><td></td>`; }).join('') + '</tr>';
@@ -568,7 +589,7 @@ function sizeChartHtml(blocks, staff, stamp) {
   }).join('') + '</table></div>').join('');
   return `<!doctype html><html lang="km"><head><meta charset="utf-8"><title>Size chart ${esc(stamp.slice(0, 10))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
-<style>@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+<style>@page{size:80mm 152mm;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font:14px 'Noto Sans Khmer',system-ui,sans-serif;color:#15171c;margin:12px;background:#fff}
 .hd{display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-bottom:4px}.lg{font-size:11px;color:#b91c1c;margin-bottom:8px}
 table{border-collapse:collapse;width:100%;table-layout:fixed;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}
@@ -583,13 +604,29 @@ tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-siz
 .one{position:absolute;right:4px;top:3px;font:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid #888;background:#fff;cursor:pointer}
 .cap{position:absolute;left:-10000px;top:0;width:800px;background:#fff;padding:12px}
 #pmsg{font-size:13px;color:#166534;margin-left:6px}
-@media print{.bar,.one{display:none}body{margin:0}}</style>
+#thermal{display:none;width:80mm;padding:2mm 3mm;color:#000;background:#fff}
+#thermal *{color:#000;background:#fff}
+.thd{font-size:13px;line-height:1.35;text-align:center;margin-bottom:2mm}.thd b{font-size:16px}
+.tlg{font-size:10px;margin-bottom:2mm}
+table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 3mm;break-inside:avoid;page-break-inside:avoid}
+table.tb td{border:1.5px solid #000;height:auto;padding:1px 2px;text-align:center;font-size:13px;line-height:1.25;word-break:break-word}
+td.tcode{text-align:left!important;padding:2px 4px!important}td.tcode b{font-size:20px}td.tcode span{float:right;font-size:15px;font-weight:700;line-height:28px}
+td.tcol{font-weight:700;font-size:13px}
+td.tcode .tprice{float:none;display:inline-block;margin-left:8px;font-size:14px;line-height:28px;font-weight:700}
+td.tsz small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}td.tsz{font-weight:700}td.tq{font-size:16px;font-weight:700}
+td.tq small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
+tr.ttot td.tsz{font-size:11px;white-space:nowrap;padding:1px 0}
+#thermal .tdiff,#thermal .tdiff small{background:#000!important;color:#fff!important}
+tr.ttot td{border-top-width:3px}
+.tend{text-align:center;font-size:11px;padding:2mm 0 6mm}
+@media print{.bar,.one,#sheet{display:none!important}body{margin:0}#thermal{display:block}}</style>
 </head><body>
-<div class="bar"><button onclick="print()">🖨 Print · បោះពុម្ព</button> <button id="picall">🖼 Save as picture · រក្សាទុកជារូបភាព</button><span id="pmsg"></span>
+<div class="bar"><button onclick="print()">🖨 Print SUNMI 80mm · បោះពុម្ព</button> <button id="picall">🖼 Save as picture · រក្សាទុកជារូបភាព</button><span id="pmsg"></span>
 <div style="font-size:12px;color:#5b6270;margin-top:4px">Tap 🖼 on a code to save only that code · ចុច 🖼 លើកូដ ដើម្បីរក្សាទុកតែកូដនោះ</div></div>
 <div id="sheet">
 <div class="hd"><span>VH Shop Stock Count · តារាងទំហំ</span><span>${staff ? 'Counted by ' + esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>
 <div class="lg">Red number = different from the PokPok qty · លេខក្រហម = ខុសពីចំនួន PokPok</div>${body}</div>
+${thermalHtml(blocks, staff, stamp)}
 <script>${SHOT_JS.replace('__STAMP__', esc(stamp.slice(0, 16).replace(/[: ]/g, '-')))}<\/script></body></html>`;
 }
 $('printchart').onclick = () => {
