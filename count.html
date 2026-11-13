@@ -570,8 +570,14 @@ function thermalHtml(blocks, staff, stamp) {
     // 💲 PokPok price: one price for the whole code goes next to the code; when sizes/colours differ, each size shows its own
     const prices = [...new Set(list.flatMap(x => x.rows.map(y => y.p)).filter(p => p != null))], each = prices.length > 1;
     const one = prices.length === 1 ? `<span class="tprice">តម្លៃ ${esc(money(prices[0]))}</span>` : each ? '<span class="tprice">តម្លៃ តាមទំហំ</span>' : '';
+    // a code with no colour and no size (PokPok "—"): one short line — code · price · counted (· PP n white on black if it differs)
+    const noCol = list.every(x => x.col === '—'), noSize = list.every(x => x.rows.every(y => y.size === '—'));
+    if (noCol && noSize) {
+      const sys = list.reduce((a, x) => a + x.rows.reduce((c, y) => c + (y.sys || 0), 0), 0), hasSys = list.some(x => x.rows.some(y => y.sys != null)), diff = hasSys && sys !== b.total;
+      return `<table class="tb"><tr><td class="tcode"><b>${esc(b.sale)}</b>${one}<span${diff ? ' class="tdiff tpad"' : ''}>${b.total} pcs${diff ? ' · PP ' + sys : ''}</span></td></tr></table>`;
+    }
     return `<table class="tb"><tr><td class="tcode" colspan="${Math.min(list.length, TH_BAND) * 2}"><b>${esc(b.sale)}</b>${one}<span>សរុប ${b.total}</span></td></tr>` + bands.map(band => {
-      let h = '<tr>' + band.map(x => `<td class="tcol" colspan="2">${esc(x.col)}</td>`).join('') + '</tr>';
+      let h = noCol ? '' : '<tr>' + band.map(x => `<td class="tcol" colspan="2">${esc(x.col)}</td>`).join('') + '</tr>';
       const n = Math.max(...band.map(x => x.rows.length));
       for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="tsz">${esc(y.size)}${each && y.p != null ? `<small>${esc(money(y.p))}</small>` : ''}</td><td class="tq${isDiff(y) ? ' tdiff' : ''}">${y.c}${isDiff(y) ? `<small>PP ${y.sys}</small>` : ''}</td>` : '<td class="tsz"></td><td class="tq"></td>'; }).join('') + '</tr>';
       return h + '<tr class="ttot">' + band.map(x => `<td class="tsz">សរុប</td><td class="tq">${x.total}</td>`).join('') + '</tr>';
@@ -618,6 +624,7 @@ td.tq small{display:block;font-size:10px;font-weight:700;line-height:1;white-spa
 tr.ttot td.tsz{font-size:11px;white-space:nowrap;padding:1px 0}
 #thermal .tdiff,#thermal .tdiff small{background:#000!important;color:#fff!important}
 tr.ttot td{border-top-width:3px}
+td.tcode span.tpad{padding:0 4px}
 .tend{text-align:center;font-size:11px;padding:2mm 0 6mm}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
 </head><body>
