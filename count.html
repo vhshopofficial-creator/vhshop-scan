@@ -562,8 +562,8 @@ document.querySelectorAll('.one').forEach(function (b) { b.onclick = function ()
 // 🖨 print layout for the SUNMI V2s PLUS built-in printer (80 mm roll): black and white only (no fills or greys — the
 // thermal head turns them into dots), only the colours a code really has (no empty colour slots, no blank row to write in),
 // at most 4 colours side by side. A number that differs from PokPok is printed white on black with the PokPok qty under it.
-const TH_BAND = 4;
-const money = p => Number.isInteger(p) ? p.toLocaleString('en-US') : (Math.round(p * 100) / 100).toFixed(2);
+const TH_BAND = 5;
+const money = p => '$' + (Number.isInteger(p) ? p.toLocaleString('en-US') : (Math.round(p * 100) / 100).toFixed(2));
 function thermalHtml(blocks, staff, stamp) {
   const blk = b => {
     const list = b.bands.flat(), bands = []; for (let i = 0; i < list.length; i += TH_BAND) bands.push(list.slice(i, i + TH_BAND));
@@ -583,7 +583,7 @@ function thermalHtml(blocks, staff, stamp) {
       return h + '<tr class="ttot">' + band.map(x => `<td class="tsz">សរុប</td><td class="tq">${x.total}</td>`).join('') + '</tr>';
     }).join('') + '</table>';
   };
-  return `<div id="thermal"><div class="thd"><b>VH Shop · តារាងទំហំ</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` +
+  return `<div id="thermal"><div class="thd"><b>VH Shop · តារាងស្តុក</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` +
     `<div class="tlg"><span class="tdiff">&nbsp;5&nbsp;</span> = ខុសពី PokPok · PP = ចំនួន PokPok</div>` + blocks.map(blk).join('') + '</div>';
 }
 function sizeChartHtml(blocks, staff, stamp) {
@@ -612,20 +612,20 @@ tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-siz
 #pmsg{font-size:13px;color:#166534;margin-left:6px}
 #thermal{display:none;width:100%;padding:1mm 2mm;color:#000;background:#fff}
 #thermal *{color:#000;background:#fff}
-.thd{font-size:13px;line-height:1.35;text-align:center;margin-bottom:2mm}.thd b{font-size:16px}
-.tlg{font-size:10px;margin-bottom:2mm}
-table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 3mm;break-inside:avoid;page-break-inside:avoid}
-table.tb td{border:1.5px solid #000;height:auto;padding:1px 2px;text-align:center;font-size:13px;line-height:1.25;word-break:break-word}
-td.tcode{text-align:left!important;padding:2px 4px!important}td.tcode b{font-size:20px}td.tcode span{float:right;font-size:15px;font-weight:700;line-height:28px}
-td.tcol{font-weight:700;font-size:13px}
-td.tcode .tprice{float:none;display:inline-block;margin-left:8px;font-size:14px;line-height:28px;font-weight:700}
-td.tsz small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}td.tsz{font-weight:700}td.tq{font-size:16px;font-weight:700}
-td.tq small{display:block;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-tr.ttot td.tsz{font-size:11px;white-space:nowrap;padding:1px 0}
-#thermal td.tdiff{border:3px solid #000!important}
-#thermal span.tdiff{border:2px solid #000;border-radius:4px}
+.thd{font-size:11px;line-height:1.3;text-align:center;margin-bottom:1mm}.thd b{font-size:14px}
+.tlg{font-size:9px;margin-bottom:1mm}
+table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 1.5mm;break-inside:avoid;page-break-inside:avoid}
+table.tb td{border:1px solid #000;height:auto;padding:0 1px;text-align:center;font-size:11px;line-height:1.2;word-break:break-word}
+td.tcode{text-align:left!important;padding:1px 3px!important}td.tcode b{font-size:16px}td.tcode span{float:right;font-size:12px;font-weight:700;line-height:20px}
+td.tcol{font-weight:700;font-size:11px}
+td.tcode .tprice{float:none;display:inline-block;margin-left:6px;font-size:12px;line-height:20px;font-weight:700}
+td.tsz small{display:block;font-size:8px;font-weight:700;line-height:1;white-space:nowrap}td.tsz{font-weight:700}td.tq{font-size:13px;font-weight:700}
+td.tq small{display:block;font-size:8px;font-weight:700;line-height:1;white-space:nowrap}
+tr.ttot td.tsz{font-size:9px;white-space:nowrap;padding:0}
+#thermal td.tdiff{border:2px solid #000!important}
+#thermal span.tdiff{border:1.5px solid #000;border-radius:3px}
 #thermal .tlg span.tdiff{padding:0 3px}
-tr.ttot td{border-top-width:3px}
+tr.ttot td{border-top-width:2px}
 td.tcode span.tpad{padding:0 4px}
 .tend{text-align:center;font-size:11px;padding:2mm 0 6mm}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
