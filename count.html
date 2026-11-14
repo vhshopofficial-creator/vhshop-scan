@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7">
 <title>VH Shop Stock Count</title>
-<!-- VH Shop Stock Count 1.3 (9 Nov 2026) — copy of VHM Stock Count 1.3 for VH Shop (project vhshop-scan-2; the map comes from
+<!-- 14 Nov 2026 c: Khmer words on the size chart, picture and print are 30–35 % bigger (khBig).
+     14 Nov 2026 b: size chart window made for phones (big buttons, sticky bar, one big 🖼 button above each code, tables
+     scroll sideways on a phone); the PokPok difference is no longer shown on the chart, picture or print (still in the .xlsx).
+     14 Nov 2026: ☁ "Online save refused" fix — if this phone's Firebase sign-in changed since the count started, the count is
+     saved as a new document (id + "-" + 6 letters of the new sign-in) instead of being refused forever.
+     VH Shop Stock Count 1.3 (9 Nov 2026) — copy of VHM Stock Count 1.3 for VH Shop (project vhshop-scan-2; the map comes from
      scan_meta/stockmap, published by the VH Shop upload page 1.3; counts online in scan_counts). Same as VHM.
      · 1.3: ☁ counts are saved online so the manager can open them on a laptop.
      · The name is required before scanning. Each phone keeps its own count (id = this device + start time), never mixed with another's.
@@ -347,11 +352,22 @@ async function cloudSave(force) {
     const base = { v: 1, id: c.id, start: c.start, counts: c.counts, codes: c.codes, unknown: c.unknown };
     let gz = pako.gzip(JSON.stringify(Object.assign({ scans: c.scans }, base))), hasScans = true;
     if (gz.length > 700000) { gz = pako.gzip(JSON.stringify(base)); hasScans = false; }          // a document must stay under 1 MB
-    await withTimeout(FB.db.collection(CNT_COL).doc(c.id).set({
-      id: c.id, uid: u.uid, dev: DEV, staff: staffOf(c) || $('staff').value.trim(), start: c.start, at: now(), atMs: Date.now(),
+    // the document belongs to the sign-in that made it. If this phone's sign-in changed (browser data cleared, manager
+    // logged in/out here), the old document refuses the new sign-in → save the count as a new document (cid) instead.
+    if (c.cuid && c.cuid !== u.uid && !c.cid) { c.cid = c.id + '-' + u.uid.slice(0, 6); if (c === C) LS.set('session', C); }
+    const docId = c.cid || c.id;
+    const write = docId => withTimeout(FB.db.collection(CNT_COL).doc(docId).set({
+      id: docId, uid: u.uid, dev: DEV, staff: staffOf(c) || $('staff').value.trim(), start: c.start, at: now(), atMs: Date.now(),
       pcs: Object.values(c.counts).reduce((a, n) => a + n, 0), codes: c.codes.length, unknown: Object.values(c.unknown).reduce((a, n) => a + n, 0),
       scans: c.scans.length, hasScans, map: String(MAP && MAP.at || ''), data: firebase.firestore.Blob.fromUint8Array(gz)
     }), 20000);                                                                                     // 1 write
+    try { await write(docId); }
+    catch (e) {
+      if (!/permission/i.test((e && (e.code || e.message)) || '') || c.cid) throw e;
+      c.cid = c.id + '-' + u.uid.slice(0, 6); if (c === C) LS.set('session', C);                                 // old document has another owner
+      await write(c.cid);                                                                           // 1 more write, once
+    }
+    c.cuid = u.uid; if (c === C) LS.set('session', C);
     if (c === C) CLOUD.saved = ver;
     CLOUD.at = now(); CLOUD.err = '';
   } catch (e) {
@@ -531,7 +547,7 @@ function sizeChartSheet(blocks, staff, stamp) {
 // runs in the chart window: 🖼 = PNG via html2canvas — the whole chart (in parts of ≤ 8 codes, so a picture never gets too tall
 // for a phone) or one code. On a phone that can share files it opens the share sheet (Telegram…), otherwise it downloads.
 const SHOT_JS = String.raw`
-var STAMP = '__STAMP__', hd = document.querySelector('.hd'), lg = document.querySelector('.lg');
+var STAMP = '__STAMP__', hd = document.querySelector('.hd');
 function say(t) { document.getElementById('pmsg').textContent = t; }
 async function snap(nodes, name) {
   var cap = document.createElement('div'); cap.className = 'cap';
@@ -554,7 +570,7 @@ lib().catch(function () {});
 async function run(fn) { say('Making the picture… · កំពុងបង្កើតរូបភាព…'); try { await lib(); } catch (e) { say(e.message); return; } try { await fn(); say('✓ Done · រួចរាល់'); } catch (e) { say('Could not make the picture: ' + (e.message || e)); } }
 document.getElementById('picall').onclick = function () { run(async function () {
   var blks = Array.prototype.slice.call(document.querySelectorAll('.blk')), files = [], per = 8, n = Math.ceil(blks.length / per);
-  for (var i = 0; i < n; i++) files.push(await snap([hd, lg].concat(blks.slice(i * per, i * per + per)), 'vhshop-size-chart-' + STAMP + (n > 1 ? '-' + (i + 1) : '') + '.png'));
+  for (var i = 0; i < n; i++) files.push(await snap([hd].concat(blks.slice(i * per, i * per + per)), 'vhshop-size-chart-' + STAMP + (n > 1 ? '-' + (i + 1) : '') + '.png'));
   await give(files);
 }); };
 // ⚡ one-tap print: the 80 mm layout becomes a 576-dot black/white picture, compressed, and goes straight to the
@@ -594,6 +610,8 @@ document.querySelectorAll('.one').forEach(function (b) { b.onclick = function ()
 // thermal head turns them into dots), only the colours a code really has (no empty colour slots, no blank row to write in),
 // at most 4 colours side by side. A number that differs from PokPok is printed white on black with the PokPok qty under it.
 const TH_BAND = 5;
+// Khmer letters look much smaller than Latin at the same size: wrap every Khmer run (text only, never inside a tag) in .kh
+const khBig = h => h.replace(/>([^<]+)</g, (m, t) => '>' + t.replace(/[\u1780-\u17FF\u19E0-\u19FF]+(?:[ \u200B]*[\u1780-\u17FF\u19E0-\u19FF]+)*/g, k => '<span class="kh">' + k + '</span>') + '<');
 const money = p => '$' + (Number.isInteger(p) ? p.toLocaleString('en-US') : (Math.round(p * 100) / 100).toFixed(2));
 function thermalHtml(blocks, staff, stamp) {
   const blk = b => {
@@ -604,27 +622,26 @@ function thermalHtml(blocks, staff, stamp) {
     // a code with no colour and no size (PokPok "—"): one short line — code · price · counted (· PP n white on black if it differs)
     const noCol = list.every(x => x.col === '—'), noSize = list.every(x => x.rows.every(y => y.size === '—'));
     if (noCol && noSize) {
-      const sys = list.reduce((a, x) => a + x.rows.reduce((c, y) => c + (y.sys || 0), 0), 0), hasSys = list.some(x => x.rows.some(y => y.sys != null)), diff = hasSys && sys !== b.total;
-      return `<table class="tb"><tr><td class="tcode"><b>${esc(b.sale)}</b>${one}<span${diff ? ' class="tdiff tpad"' : ''}>${b.total} pcs${diff ? ' · PP ' + sys : ''}</span></td></tr></table>`;
+      return `<table class="tb"><tr><td class="tcode"><b>${esc(b.sale)}</b>${one}<span>${b.total} pcs</span></td></tr></table>`;
     }
     return `<table class="tb"><tr><td class="tcode" colspan="${Math.min(list.length, TH_BAND) * 2}"><b>${esc(b.sale)}</b>${one}<span>សរុប ${b.total}</span></td></tr>` + bands.map(band => {
       let h = noCol ? '' : '<tr>' + band.map(x => `<td class="tcol" colspan="2">${esc(x.col)}</td>`).join('') + '</tr>';
       const n = Math.max(...band.map(x => x.rows.length));
-      for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="tsz">${esc(y.size)}${each && y.p != null ? `<small>${esc(money(y.p))}</small>` : ''}</td><td class="tq${isDiff(y) ? ' tdiff' : ''}">${y.c}${isDiff(y) ? `<small>PP ${y.sys}</small>` : ''}</td>` : '<td class="tsz"></td><td class="tq"></td>'; }).join('') + '</tr>';
+      for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="tsz">${esc(y.size)}${each && y.p != null ? `<small>${esc(money(y.p))}</small>` : ''}</td><td class="tq">${y.c}</td>` : '<td class="tsz"></td><td class="tq"></td>'; }).join('') + '</tr>';
       return h + '<tr class="ttot">' + band.map(x => `<td class="tsz">សរុប</td><td class="tq">${x.total}</td>`).join('') + '</tr>';
     }).join('') + '</table>';
   };
-  return `<div id="thermal"><div class="thd"><b>VH Shop · តារាងស្តុក</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` +
-    `<div class="tlg"><span class="tdiff">&nbsp;5&nbsp;</span> = ខុសពី PokPok · PP = ចំនួន PokPok</div>` + blocks.map(blk).join('') + '</div>';
+  return khBig(`<div id="thermal"><div class="thd"><b>VH Shop · តារាងស្តុក</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` + blocks.map(blk).join('') + '</div>');
 }
 function sizeChartHtml(blocks, staff, stamp) {
-  const body = blocks.map(b => `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 ${esc(b.sale)}</button><table><tr><td class="code">${esc(b.sale)}</td>${'<td></td>'.repeat(PER_BAND * 2 - 1)}</tr>` + b.bands.map((band, bi) => {
+  const body = blocks.map(b => `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 Save ${esc(b.sale)} · រក្សាទុក</button><div class="scroll"><table><tr><td class="code">${esc(b.sale)}</td>${'<td></td>'.repeat(PER_BAND * 2 - 1)}</tr>` + b.bands.map((band, bi) => {
     let h = '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i]; if (!x) return '<td></td><td></td>'; const [f, t] = colourOf(x.col); return `<td class="col"><span style="background:#${f};color:#${t}">${esc(x.col)}</span></td><td></td>`; }).join('') + '</tr>';
     const n = Math.max(...band.map(x => x.rows.length)) + 1;
-    for (let r = 0; r < n; r++) h += '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i] && band[i].rows[r]; return x ? `<td class="sz"><span>${esc(x.size)}</span></td><td class="q${isDiff(x) ? ' diff' : ''}">${x.c}${isDiff(x) ? `<small>PokPok ${x.sys}</small>` : ''}</td>` : `<td class="sz">${band[i] ? '<span>&nbsp;</span>' : ''}</td><td></td>`; }).join('') + '</tr>';
+    for (let r = 0; r < n; r++) h += '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i] && band[i].rows[r]; return x ? `<td class="sz"><span>${esc(x.size)}</span></td><td class="q">${x.c}</td>` : `<td class="sz">${band[i] ? '<span>&nbsp;</span>' : ''}</td><td></td>`; }).join('') + '</tr>';
     return h + '<tr class="tot">' + Array.from({ length: PER_BAND }, (_, i) => `<td class="lab">${i === 0 && bi === b.bands.length - 1 ? 'សរុប ' + b.total : ''}</td><td>${band[i] ? band[i].total : ''}</td>`).join('') + '</tr>';
-  }).join('') + '</table></div>').join('');
-  return `<!doctype html><html lang="km"><head><meta charset="utf-8"><title>Size chart ${esc(stamp.slice(0, 10))}</title>
+  }).join('') + '</table></div></div>').join('');
+  const head = khBig(`<div class="hd"><span>VH Shop Stock Count · តារាងទំហំ</span><span>${staff ? 'Counted by ' + esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>`);
+  return `<!doctype html><html lang="km"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Size chart ${esc(stamp.slice(0, 10))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
 <style>@page{margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font:14px 'Noto Sans Khmer',system-ui,sans-serif;color:#15171c;margin:12px;background:#fff}
@@ -636,16 +653,22 @@ td.col span,td.sz span{display:block;border-radius:8px;padding:1px 3px;font-weig
 td.col span{border:1px solid #bbb}td.sz span{background:#e5e7eb}
 td.q.diff{color:#c62828;font-weight:700}td.q small{display:block;font-size:9px;line-height:1;font-weight:400}
 tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-size:13px}
-.bar{margin-bottom:10px}.bar button{font:inherit;padding:6px 16px;border-radius:8px;border:1px solid #2f6fed;background:#2f6fed;color:#fff;font-weight:700;cursor:pointer}
-.blk{position:relative;break-inside:avoid;page-break-inside:avoid}.blk table{margin-bottom:12px}
-.one{position:absolute;right:4px;top:3px;font:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid #888;background:#fff;cursor:pointer}
+.bar{position:sticky;top:0;z-index:5;background:#fff;margin:-12px -12px 10px;padding:10px 12px;border-bottom:1px solid #e5e7eb;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bar button{font:inherit;font-size:16px;min-height:52px;padding:8px 10px;border-radius:12px;border:2px solid #2f6fed;background:#2f6fed;color:#fff;font-weight:700;cursor:pointer;touch-action:manipulation}
+.bar #qprint{grid-column:1/-1;font-size:19px;min-height:60px}.bar #qgo{grid-column:1/-1}
+.bar .hint{grid-column:1/-1;font-size:13px;color:#5b6270}#pmsg{grid-column:1/-1;font-size:15px;font-weight:700;color:#166534;margin:0}#pmsg:empty{display:none}
+.blk{position:relative;break-inside:avoid;page-break-inside:avoid;margin-bottom:18px}.blk table{margin-bottom:0}
+.one{display:block;width:100%;font:inherit;font-size:16px;font-weight:700;min-height:48px;margin:0 0 6px;padding:8px 12px;border-radius:12px;border:2px solid #2f6fed;background:#eef4ff;color:#1d4ed8;cursor:pointer;touch-action:manipulation;text-align:left}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:600px){body{margin:12px 8px}.bar{margin:-12px -8px 10px}#sheet .hd{flex-direction:column;gap:0}#sheet .scroll table{min-width:520px}}
 .cap{position:absolute;left:-10000px;top:0;width:800px;background:#fff;padding:12px}
-#pmsg{font-size:13px;color:#166534;margin-left:6px}
+
 .qcap{position:absolute;left:-10000px;top:0;width:576px;background:#fff}
-#qgo{display:none;margin-top:8px;font:inherit;font-size:18px;padding:10px 18px;border-radius:10px;border:0;background:#15803d;color:#fff;font-weight:700}
+.bar #qgo{display:none;background:#15803d;border-color:#15803d;font-size:18px}
 #thermal{--u:1px;--ln:0.5px;--lb:1.2px;display:none;width:100%;padding:calc(var(--u)*4) calc(var(--u)*7);color:#000;background:#fff}
 #thermal.q576{--u:1.905px;--ln:1px;--lb:2px;width:576px;box-sizing:border-box}
 #thermal *{color:#000;background:#fff}
+.kh{font-size:1.3em;line-height:1.15}#thermal .kh,#thermal table.tb td.tcode span.kh{font-size:1.35em;float:none;display:inline;background:transparent!important;line-height:1.1;font-weight:inherit;padding:0;border:0}
 #thermal .thd{font-size:calc(var(--u)*11);line-height:1.3;text-align:center;margin-bottom:calc(var(--u)*4)}#thermal .thd b{font-size:calc(var(--u)*14)}
 #thermal .tlg{font-size:calc(var(--u)*9);margin-bottom:calc(var(--u)*4)}
 #thermal table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 calc(var(--u)*6);break-inside:avoid;page-break-inside:avoid}
@@ -661,11 +684,11 @@ tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-siz
 #thermal table.tb td.tcode span.tpad{padding:0 calc(var(--u)*4)}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
 </head><body>
-<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button> <button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button> <button id="picall">🖼 Save as picture · រក្សាទុកជារូបភាព</button><span id="pmsg"></span><br><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button>
-<div style="font-size:12px;color:#5b6270;margin-top:4px">Tap 🖼 on a code to save only that code · ចុច 🖼 លើកូដ ដើម្បីរក្សាទុកតែកូដនោះ</div></div>
+<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button><button id="picall">🖼 Save all · រក្សាទុកទាំងអស់</button><button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button><div id="pmsg"></div>
+<div class="hint">Tap 🖼 above a code to save only that code · ចុច 🖼 លើកូដ ដើម្បីរក្សាទុកតែកូដនោះ</div></div>
 <div id="sheet">
-<div class="hd"><span>VH Shop Stock Count · តារាងទំហំ</span><span>${staff ? 'Counted by ' + esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>
-<div class="lg">Red number = different from the PokPok qty · លេខក្រហម = ខុសពីចំនួន PokPok</div>${body}</div>
+${head}
+${khBig(body)}</div>
 ${thermalHtml(blocks, staff, stamp)}
 <script>${SHOT_JS.replace('__STAMP__', esc(stamp.slice(0, 16).replace(/[: ]/g, '-')))}<\/script></body></html>`;
 }
