@@ -5,7 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7">
 <title>VH Shop Stock Count</title>
-<!-- 14 Nov 2026 c: Khmer words on the size chart, picture and print are 30–35 % bigger (khBig).
+<!-- 14 Nov 2026 g: 🖼 pictures made for Telegram: 1080 px wide JPEG, one picture per phone screen (≤ 1920 px tall),
+     so Telegram does not shrink them; "Save all" makes as many pictures as needed.
+     14 Nov 2026 f: one type scale everywhere. Page: 13 small · 16 text/buttons · 20 titles, codes, sizes · 26 counts · 44 the
+     scan number; only normal (400) and bold (700). Chart/picture/print: labels (colour, size, សរុប) one size bold, numbers
+     1.25× bold, code line 1.15× bold; Khmer 1.3× everywhere so it matches the Latin letters.
+     14 Nov 2026 e: "Open counts on a laptop" removed from the page (counts are still saved online). The size chart, picture,
+     print and the .xlsx Size chart show only what was counted (no 0 rows from PokPok stock). Chart tables have only the colour
+     columns the code has, no empty write-in row, and the fewer the columns the bigger the text (picture and 80 mm print).
+     14 Nov 2026 d — made for counting on a phone (SUNMI):
+     · the scan box + result stay pinned at the top while you scroll; the phone keyboard stays hidden (the scanner types),
+       ⌨ turns it on to type a code; a tap anywhere puts the cursor back in the scan box.
+     · the result shows the count, the code and the colour · size big.
+     · the name is asked once, then shown as one line with ✎ Change. The map is one line (tap to open).
+     · each code: colour groups with a colour dot, sizes big, − / + big; only the codes you open stay open; 🔍 find when 6+ codes.
+     · bottom bar: ↩ Undo · 🖨 Print chart · ⋯ More (report, save online, check map, new count, manager). ☁ chip at the top.
+     · 🖨 on a code prints only that code.
+     14 Nov 2026 c: Khmer words on the size chart, picture and print are 30–35 % bigger (khBig).
      14 Nov 2026 b: size chart window made for phones (big buttons, sticky bar, one big 🖼 button above each code, tables
      scroll sideways on a phone); the PokPok difference is no longer shown on the chart, picture or print (still in the .xlsx).
      14 Nov 2026: ☁ "Online save refused" fix — if this phone's Firebase sign-in changed since the count started, the count is
@@ -49,13 +65,13 @@ input{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8p
 /* language: every text has .en and .km; html[data-lang] decides what shows */
 html[data-lang=en] .km,html[data-lang=km] .en{display:none!important}
 .bi{display:block}.bi>.en,.bi>.km{display:block}
-.bi>.km{color:var(--mut);font-weight:400;font-size:.92em;line-height:1.6}
+.bi>.km{color:var(--mut);font-weight:inherit;font-size:.92em;line-height:1.6}
 .bl>.km::before{content:' · '}
 html[data-lang=km] .bl>.km::before{content:''}
 html[data-lang=km] .bi>.km{color:inherit;font-size:inherit;font-weight:inherit}
 button .bi>.km,#res .bi>.km{color:inherit;opacity:.92}
 .top{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);padding:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.top h1{font-size:17px;margin:0;flex:1;min-width:150px}
+.top h1{font-size:16px;font-weight:700;margin:0;flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.top{flex-wrap:nowrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card2)}
 .seg button{border:0;border-radius:0;min-height:36px;padding:0 10px;font-size:13px;background:transparent}
 .seg button+button{border-left:1px solid var(--line)}
@@ -67,30 +83,30 @@ main{max-width:860px;margin:0 auto;padding:6px 14px 80px}
 .filebtn{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--acc);background:#f5f8ff;color:#1e4fc2;border-radius:12px;min-height:56px;cursor:pointer;padding:8px 14px;font-weight:700;flex:1 1 240px;text-align:center}
 .filebtn:focus-within{outline:3px solid #9bbcff;outline-offset:2px}
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-#scan{width:100%;font-size:24px;min-height:62px;text-align:center;border:2px solid var(--tx);border-radius:14px;letter-spacing:1px}
+#scan{width:100%;font-size:20px;min-height:62px;text-align:center;border:2px solid var(--tx);border-radius:14px;letter-spacing:1px}
 #res{margin-top:10px;border-radius:14px;padding:14px;color:#fff;background:#64748b;min-height:84px}
 #res.ok{background:var(--ok)}#res.bad{background:var(--bad)}#res.warn{background:#c2410c}#res.info{background:#334155}
-#res .big{font-size:22px;font-weight:800;line-height:1.3}
-#res .n{font-size:40px;font-weight:800;line-height:1}
+#res .big{font-size:20px;font-weight:700;line-height:1.3}
+#res .n{font-size:44px;font-weight:700;line-height:1}
 .sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:10px 0}
 .cell{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card2)}
-.cell b{display:block;font-size:22px}.cell span{font-size:12px;color:var(--mut)}
+.cell b{display:block;font-size:20px}.cell span{font-size:13px;color:var(--mut)}
 #pick{margin-top:10px;border:2px solid #f59e0b;border-radius:14px;padding:12px;background:#fff}
-#pick h3{margin:0 0 6px;font-size:17px}
+#pick h3{margin:0 0 6px;font-size:20px}
 .lines{display:grid;gap:6px;margin-top:8px}.lines button{text-align:left;padding:8px 12px;min-height:56px}
 .code{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:#fff}
 .code>summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card2)}
 .code>summary::-webkit-details-marker{display:none}
-.code>summary b{font-size:18px}
+.code>summary b{font-size:20px}
 .code.cur{border-color:var(--acc);box-shadow:0 0 0 2px #c9dafc}
-.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:99px;background:#e2e8f0;white-space:nowrap}
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:1px 9px;border-radius:99px;background:#e2e8f0;white-space:nowrap}
 .tag.ok{background:#dcfce7;color:#166534}.tag.bad{background:#fee2e2;color:#991b1b}.tag.warn{background:#ffedd5;color:#9a3412}
 .v{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
 .v.zero .cnt{color:#94a3b8}
 .v .nm{min-width:0;overflow-wrap:anywhere}
-.v .nm small{display:block;color:var(--mut);font-size:12px}
-.v .cnt{font-size:24px;font-weight:800;min-width:2.2ch;text-align:right}
-.v .pm{display:flex;gap:4px}.v .pm button{min-width:44px;padding:0;font-size:20px;font-weight:700}
+.v .nm small{display:block;color:var(--mut);font-size:13px}
+.v .cnt{font-size:26px;font-weight:700;min-width:2.2ch;text-align:right}
+.v .pm{display:flex;gap:4px}.v .pm button{min-width:44px;padding:0;font-size:26px;font-weight:700}
 .v.last{background:#eff6ff}
 #viewbar{margin-top:10px;border:2px solid var(--acc);background:#eff6ff;border-radius:12px;padding:10px 12px}
 #viewbar b{color:#1e3a8a}
@@ -102,42 +118,109 @@ body.viewing .v .pm{visibility:hidden}
 .crow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}
 .crow input{min-height:24px;width:22px;height:22px}
 .crow .act{display:flex;gap:6px}.crow .act button{min-height:38px;padding:0 10px}
-@media(max-width:480px){.top{padding:8px 12px}.top h1{font-size:15px}main{padding:4px 10px 80px}.card{padding:12px}}
+/* ---- mobile counting layout ---- */
+.chip{min-height:36px;padding:0 10px;border-radius:99px;font-size:13px;font-weight:700;background:var(--card2)}
+#cloudchip.ok{background:#dcfce7;border-color:#86efac;color:#166534}#cloudchip.wait{background:#fff7ed;border-color:#fdba74;color:#9a3412}#cloudchip.bad{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+main{padding-bottom:110px}
+#mapcard>summary{list-style:none;cursor:pointer;font-weight:700;font-size:13px;display:flex;gap:6px;align-items:center}
+#mapcard>summary::-webkit-details-marker{display:none}#mapcard>summary::after{content:'▾';margin-left:auto;color:var(--mut)}
+#mapcard[open]>summary{margin-bottom:8px}#mapcard.okmap{padding:8px 12px}#mapcard.okmap>summary{color:#166534;font-size:13px}
+.namerow{display:flex;gap:8px;margin-top:12px}.namerow input{flex:1;font-size:20px;min-height:52px;border:2px solid var(--acc)}.namerow button{min-height:52px}
+.namechip{margin-top:10px;display:flex;align-items:center;gap:8px;font-size:16px}.namechip b{font-size:16px}.namechip button{min-height:34px;font-size:13px;padding:0 10px;margin-left:auto}
+.dock{position:sticky;top:53px;z-index:4;background:var(--bg);padding:8px 0 6px;margin-top:4px}
+.scanrow{display:flex;gap:8px}
+#scan{flex:1;width:auto;font-size:20px;min-height:56px;border:2px solid var(--tx);border-radius:14px}
+#scan:focus{border-color:var(--acc);box-shadow:0 0 0 3px #c9dafc;outline:0}
+#kbd{min-width:56px;min-height:56px;font-size:22px;border-radius:14px}#kbd.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+#res{margin-top:8px;min-height:0;padding:10px 14px}#res:empty{display:none}#res.ready{background:#e2e8f0;color:var(--tx)}
+#res .big{font-size:20px}#res .n{font-size:44px}
+#res>div+div{font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#res.open>div+div{-webkit-line-clamp:unset}
+#res .cs{display:block;font-size:26px;font-weight:700;line-height:1.25;margin-top:2px}
+.sum{display:flex;gap:8px;margin:8px 0;overflow-x:auto}
+.cell{flex:1 0 auto;padding:6px 10px;display:flex;align-items:baseline;gap:6px}.cell b{display:inline;font-size:20px;font-weight:700}
+.findrow{margin-top:4px}.findrow input{width:100%;min-height:46px}
+.code>summary{padding:8px 10px;min-height:58px;flex-wrap:nowrap}
+.code>summary b{font-size:20px;font-weight:700}
+.code>summary .pcs{margin-left:auto;font-size:20px;font-weight:700}.code>summary .pcs small{font-size:13px;color:var(--mut);font-weight:400;margin-left:2px}
+.code>summary .pr1{min-height:44px;min-width:48px;padding:0 8px;font-size:20px;border-radius:10px;flex:0 0 auto}
+.code>summary::after{content:'▾';color:var(--mut);font-size:13px}.code[open]>summary::after{content:'▴'}
+.code>summary .sys{font-size:13px;color:var(--mut);white-space:nowrap}
+.cg{padding:6px 12px 2px;border-top:1px solid var(--line);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sw{display:inline-block;width:20px;height:20px;border-radius:6px;border:1px solid #9aa3af;flex:0 0 auto}
+.v{grid-template-columns:auto 1fr auto auto;padding:6px 10px 6px 12px;border-top:1px dashed #e5e7eb}
+.v .sz{font-size:20px;font-weight:700;min-width:3.2ch}
+.v .nm{font-size:13px;color:var(--mut)}.v .nm small{font-size:13px}
+.v .cnt{font-size:26px;font-weight:700}
+.v .pm{gap:6px}.v .pm button{min-width:52px;min-height:48px;font-size:26px;border-radius:12px}
+.v .pm button[data-p]{background:#eef4ff;border-color:#9bbcff;color:#1d4ed8}
+.v.last{background:#dbeafe}
+.tip{margin:14px 2px}
+.bbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.bbar button{min-height:56px;font-size:16px;font-weight:700;border-radius:14px;padding:0 6px;line-height:1.2}
+
+.sheetbg{position:fixed;inset:0;z-index:30;background:rgba(15,23,42,.45)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:#fff;border-radius:20px 20px 0 0;padding:8px 14px calc(14px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;display:grid;gap:10px;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.sheet .grab{width:44px;height:5px;border-radius:9px;background:#cbd5e1;margin:2px auto 4px}
+.sheet button.big{min-height:56px;font-size:16px;border-radius:14px;width:100%}
+.sheet #cloudst{margin-top:-4px;text-align:center}
+.sheet .mgr{margin-top:0}
+body.sheeton{overflow:hidden}
+body.viewing .bbar #undo{visibility:hidden}
+@media(max-width:480px){.top{padding:8px 10px;gap:6px}.top h1{font-size:16px;min-width:0}main{padding:4px 10px 110px}.card{padding:12px}}
+@media(min-width:900px){.bbar{left:50%;right:auto;width:860px;transform:translateX(-50%);border-radius:16px 16px 0 0}}
 </style>
 </head>
 <body>
 <div class="top">
-  <h1><span class="bl"><span class="en">VH Shop · Stock Count</span><span class="km">VH Shop · រាប់ស្តុក</span></span></h1>
-  <div class="seg" id="langsw" role="group" aria-label="Language"><button data-l="km">ខ្មែរ</button><button data-l="en">English</button><button data-l="both">ខ្មែរ + EN</button></div>
+  <h1>VH Shop · រាប់ស្តុក</h1>
+  <button id="cloudchip" class="chip" aria-label="online save"></button>
+  <button id="langbtn" class="chip" aria-label="Language"></button>
 </div>
 <main>
-  <!-- 1 · map file -->
-  <div class="card" id="mapcard">
-    <h2><span class="bi"><span class="en">1 · Map (PokPok ↔ Vrich)</span><span class="km">1 · ផែនទី (PokPok ↔ Vrich)</span></span></h2>
+  <!-- 1 · map: one line once loaded, tap to open -->
+  <details class="card" id="mapcard">
+    <summary id="mapsum"></summary>
     <div id="mapinfo" class="mut"></div>
     <div class="row">
       <button id="mapcheck"><span class="bl"><span class="en">🔄 Check for a new map</span><span class="km">🔄 ពិនិត្យផែនទីថ្មី</span></span></button>
       <label class="filebtn" style="flex:0 1 auto;min-height:44px;border-width:1px"><span class="bl"><span class="en">📂 Open map file</span><span class="km">📂 បើកឯកសារផែនទី</span></span><input type="file" id="mapfile" class="vh" accept=".json,application/json"></label>
     </div>
     <div class="mut" style="margin-top:6px"><span class="bi"><span class="en">The map loads by itself from VH Shop Scan and updates whenever the manager uploads the PokPok or Vrich list. A map file is only needed without internet.</span><span class="km">ផែនទីផ្ទុកដោយខ្លួនឯងពី VH Shop Scan ហើយធ្វើបច្ចុប្បន្នភាពរាល់ពេលអ្នកគ្រប់គ្រងបញ្ចូលបញ្ជី PokPok ឬ Vrich។ ត្រូវការឯកសារផែនទីតែពេលគ្មានអ៊ីនធឺណិត។</span></span></div>
-  </div>
+  </details>
 
   <!-- 2 · count -->
-  <div class="card hide" id="countcard">
-    <h2><span class="bi"><span class="en">2 · Scan to count</span><span class="km">2 · ស្កេនដើម្បីរាប់</span></span></h2>
-    <div class="row"><input id="staff" style="flex:1" autocomplete="name"></div>
-    <div class="row"><input id="scan" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"></div>
-    <div class="mut" style="margin-top:4px"><span class="bi"><span class="en">Scan each PokPok label once per piece. Type a product code (e.g. E366) to add it with 0 — every colour/size of a code you touch is in the report.</span><span class="km">ស្កេនស្លាក PokPok ម្តង ក្នុងមួយដុំ។ វាយកូដទំនិញ (ឧ. E366) ដើម្បីបន្ថែមវាជាមួយ 0 — គ្រប់ពណ៌/ទំហំនៃកូដដែលបានរាប់ មាននៅក្នុងរបាយការណ៍។</span></span></div>
-    <div id="res"></div>
+  <div class="hide" id="countcard">
+    <div id="namerow" class="namerow"><input id="staff" autocomplete="name" enterkeyhint="done"><button class="pri" id="nameok"></button></div>
+    <div id="namechip" class="namechip hide"></div>
+    <div class="dock">
+      <div class="scanrow"><input id="scan" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" inputmode="none"><button id="kbd" aria-label="keyboard">⌨</button></div>
+      <div id="res"></div>
+    </div>
     <div id="pick" class="hide"></div>
     <div id="viewbar" class="hide"></div>
-    <div class="row"><button id="undo"></button><button class="pri" id="export"></button><button id="printchart"></button><button class="danger" id="reset"></button></div>
-    <div class="row"><button id="cloudsave"></button><span id="cloudst" class="mut"></span></div>
     <div class="sum" id="tot"></div>
+    <div class="findrow hide" id="findrow"><input id="find" type="search" autocomplete="off" autocapitalize="characters" enterkeyhint="search"></div>
     <div id="codes"></div>
-    <details class="mgr" id="mgr"><summary></summary><div id="mgrbody"></div></details>
+    <div class="mut tip" id="tip"></div>
   </div>
 </main>
+<!-- bottom bar: the three things done most while counting -->
+<nav class="bbar hide" id="bbar">
+  <button id="undo"></button>
+  <button class="pri" id="printchart"></button>
+  <button id="morebtn"></button>
+</nav>
+<div class="sheetbg hide" id="morebg"></div>
+<div class="sheet hide" id="more" role="dialog">
+  <div class="grab"></div>
+  <button class="pri big" id="export"></button>
+  <button class="big" id="cloudsave"></button>
+  <div id="cloudst" class="mut"></div>
+  <button class="big" id="mapcheck2"></button>
+  <button class="danger big" id="reset"></button>
+  <button class="big" id="moreclose"></button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>   <!-- SheetJS 0.18.5 + cell colours/borders (Size chart sheet) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
@@ -166,16 +249,21 @@ const L = (en, km) => LANG === 'en' ? en : LANG === 'km' ? km : en + ' · ' + km
 const Lc = (en, km) => LANG === 'en' ? en : LANG === 'km' ? km : en + '\n\n' + km;
 function setLang(l) {
   LANG = l; LS.set('lang', l); document.documentElement.dataset.lang = l; document.documentElement.lang = l === 'en' ? 'en' : 'km';
-  document.querySelectorAll('#langsw [data-l]').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+  $('langbtn').textContent = { km: 'ខ្មែរ', en: 'EN', both: 'ខ្មែរ+EN' }[l];
   $('staff').placeholder = L('Your name', 'ឈ្មោះរបស់អ្នក'); $('scan').placeholder = L('Scan PokPok label', 'ស្កេនស្លាក PokPok');
+  $('find').placeholder = L('🔍 Find a code', '🔍 ស្វែងរកកូដ');
+  if (MAP) { showMapInfo(); render(); } cloudShow(); if (!$('res').textContent || $('res').classList.contains('ready')) say('', '', '');
 }
-document.querySelectorAll('#langsw [data-l]').forEach(b => b.onclick = () => setLang(b.dataset.l));
-$('undo').innerHTML = bl('↩ Undo last', '↩ ដកវិញ');
+$('langbtn').onclick = () => setLang({ km: 'en', en: 'both', both: 'km' }[LANG]);
+$('undo').innerHTML = bi('↩ Undo', '↩ ដកវិញ');
+$('morebtn').innerHTML = bi('⋯ More', '⋯ ផ្សេងៗ');
+$('mapcheck2').innerHTML = bl('🔄 Check for a new map', '🔄 ពិនិត្យផែនទីថ្មី');
+$('moreclose').innerHTML = bl('Close', 'បិទ');
+$('nameok').innerHTML = bl('OK', 'យល់ព្រម');
 $('export').innerHTML = bl('⬇ Export report (.xlsx)', '⬇ ទាញយករបាយការណ៍ (.xlsx)');
 $('reset').innerHTML = bl('New count', 'រាប់ថ្មី');
 $('cloudsave').innerHTML = bl('☁ Save online now', '☁ រក្សាទុកលើប្រព័ន្ធឥឡូវនេះ');
-$('mgr').querySelector('summary').innerHTML = bl('💻 Open counts on a laptop (manager)', '💻 បើកការរាប់លើកុំព្យូទ័រ (អ្នកគ្រប់គ្រង)');
-$('printchart').innerHTML = bl('🖨 / 🖼 Size chart (print or picture)', '🖨 / 🖼 តារាងទំហំ (បោះពុម្ព ឬរូបភាព)');
+$('printchart').innerHTML = bi('🖨 Print chart', '🖨 បោះពុម្ពតារាង');
 
 /* ---------- sounds ---------- */
 let actx = null;
@@ -231,12 +319,16 @@ function checkMap(force) {
 }
 $('mapcheck').onclick = async () => { const fresh = await checkMap(true); say('info', fresh ? bl('New map loaded', 'បានផ្ទុកផែនទីថ្មី') : MAPERR ? bl('Could not check', 'មិនអាចពិនិត្យបាន') : bl('The map is up to date', 'ផែនទីទាន់សម័យ'), MAPERR ? esc(MAPERR) : ''); focusScan(); };
 function showMapInfo() {
-  if (!MAP) { $('mapinfo').innerHTML = MAPERR ? `<b style="color:#991b1b">${bl('Could not load the map from VH Shop Scan: ' + esc(MAPERR), 'មិនអាចផ្ទុកផែនទីពី VH Shop Scan៖ ' + esc(MAPERR))}</b>` : bl('Loading the map from VH Shop Scan…', 'កំពុងផ្ទុកផែនទីពី VH Shop Scan…'); $('countcard').classList.add('hide'); return; }
+  if (!MAP) { $('mapinfo').innerHTML = MAPERR ? `<b style="color:#991b1b">${bl('Could not load the map from VH Shop Scan: ' + esc(MAPERR), 'មិនអាចផ្ទុកផែនទីពី VH Shop Scan៖ ' + esc(MAPERR))}</b>` : bl('Loading the map from VH Shop Scan…', 'កំពុងផ្ទុកផែនទីពី VH Shop Scan…');
+    $('mapsum').innerHTML = MAPERR ? bl('⚠ No map yet', '⚠ មិនទាន់មានផែនទី') : bl('⏳ Loading the map…', '⏳ កំពុងផ្ទុកផែនទី…'); $('mapcard').className = 'card'; $('mapcard').open = true;
+    $('countcard').classList.add('hide'); $('bbar').classList.add('hide'); return; }
+  $('mapsum').innerHTML = (MAPERR || MAP.source !== 'online' ? '⚠ ' : '✓ ') + bl('Map ' + fmt(MAP.items.length) + ' items · ' + esc(String(MAP.at).slice(5, 16).replace('T', ' ')), 'ផែនទី ' + fmt(MAP.items.length) + ' · ' + esc(String(MAP.at).slice(5, 16).replace('T', ' ')));
+  $('mapcard').className = 'card' + (MAPERR || (MAP.source !== 'online' && age > 7) ? '' : ' okmap');
   const age = Math.floor((Date.now() - Date.parse(String(MAP.at).replace(' ', 'T') + 'Z') + 7 * 3600e3) / 864e5);
   $('mapinfo').innerHTML = bi(`✓ ${MAP.source === 'online' ? 'Map from VH Shop Scan' : 'Map file'}: <b>${fmt(MAP.items.length)}</b> PokPok items · made ${esc(String(MAP.at).slice(0, 16).replace('T', ' '))} · PokPok list ${esc(String(MAP.pok && MAP.pok.at || '').slice(0, 16).replace('T', ' '))} · Vrich ${esc(String(MAP.vrich && MAP.vrich.at || '').slice(0, 16).replace('T', ' '))}`, `✓ ផែនទី៖ <b>${fmt(MAP.items.length)}</b> ទំនិញ PokPok · បង្កើត ${esc(String(MAP.at).slice(0, 16).replace('T', ' '))}`) +
     (MAPERR ? `<div style="color:#9a3412;margin-top:4px">${bl('Could not check VH Shop Scan for a newer map (' + esc(MAPERR) + ') — using the copy on this device.', 'មិនអាចពិនិត្យផែនទីថ្មីបាន (' + esc(MAPERR) + ') — ប្រើច្បាប់ចម្លងលើឧបករណ៍នេះ។')}</div>` : '') +
     (MAP.source !== 'online' && age > 7 ? `<div style="color:#9a3412;font-weight:700;margin-top:4px">${bl('⚠ This map file is ' + age + ' days old — tap “Check for a new map”.', '⚠ ឯកសារផែនទីនេះចាស់ ' + age + ' ថ្ងៃ — ចុច «ពិនិត្យផែនទីថ្មី»។')}</div>` : '');
-  $('countcard').classList.remove('hide');
+  $('countcard').classList.remove('hide'); $('bbar').classList.remove('hide'); nameShow();
 }
 $('mapfile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -262,12 +354,16 @@ const curStaff = () => VIEW ? (C.staff || '') : (staffOf(C) || $('staff').value.
 // before a scan or a +/−: not while viewing a saved count, and only with a name
 function canCount() {
   if (VIEW) { say('warn', bl('👁 You are viewing a saved count', '👁 អ្នកកំពុងមើលការរាប់ដែលបានរក្សាទុក'), bl('Tap “Back to my count” to scan.', 'ចុច «ត្រឡប់ទៅការរាប់របស់ខ្ញុំ» ដើម្បីស្កេន។')); sWarn(); return false; }
-  if (!$('staff').value.trim()) { say('bad', bl('✍ Type your name first', '✍ សូមវាយឈ្មោះរបស់អ្នកជាមុនសិន'), bl('Every count is saved under the name of the person counting.', 'ការរាប់នីមួយៗត្រូវរក្សាទុកក្រោមឈ្មោះអ្នករាប់។')); sBad(); buzz([200, 80, 200]); $('staff').focus(); return false; }
+  if (!$('staff').value.trim()) { say('bad', bl('✍ Type your name first', '✍ សូមវាយឈ្មោះរបស់អ្នកជាមុនសិន'), bl('Every count is saved under the name of the person counting.', 'ការរាប់នីមួយៗត្រូវរក្សាទុកក្រោមឈ្មោះអ្នករាប់។')); sBad(); buzz([200, 80, 200]); nameEdit(); return false; }
   return true;
 }
 let LAST = '';           // PokPok code of the last scan (highlighted)
 
-function say(cls, big, small) { $('res').className = cls; $('res').innerHTML = `<div class="big">${big}</div>` + (small ? `<div>${small}</div>` : ''); }
+function say(cls, big, small) {
+  if (!cls && !big) { $('res').className = 'ready'; $('res').innerHTML = `<div class="big">${bl('📷 Ready — scan a PokPok label', '📷 រួចរាល់ — ស្កេនស្លាក PokPok')}</div>`; return; }
+  $('res').className = cls; $('res').innerHTML = `<div class="big">${big}</div>` + (small ? `<div>${small}</div>` : '');
+}
+const csTxt = it => { const { col, size } = colourSize(it); return esc([col, size].filter(x => x && x !== '—').join(' · ')); };
 const attrTxt = a => String(a || '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
 const itemName = it => esc((it[2] + ' ' + String(it[3] || '').replace(/-/g, ' ')).replace(/\s+/g, ' ').trim());
 function addCode(sale) { if (sale && !C.codes.includes(sale)) C.codes.unshift(sale); else if (sale) { C.codes = [sale, ...C.codes.filter(x => x !== sale)]; } }
@@ -276,7 +372,8 @@ function count(it, raw, delta) {
   const k = nz(it[0]); C.counts[k] = Math.max(0, (C.counts[k] || 0) + delta);
   C.scans.push([now(), raw, it[0], delta, $('staff').value.trim()]); addCode(nz(it[7])); LAST = k; save();
   const n = C.counts[k], vr = OKST.has(it[9]) ? `→ Vrich <b>${esc(it[6])}</b> ${esc(it[8])}` : `<b>⚠ ${bl(esc(ST_TXT[it[9]][0]), esc(ST_TXT[it[9]][1]))}</b>`;
-  if (delta > 0) { if (OKST.has(it[9])) { say('ok', `<span class="n">${n}</span> · ${itemName(it)}`, vr); sOk(); buzz(25); } else { say('warn', `<span class="n">${n}</span> · ${itemName(it)}`, vr); sWarn(); buzz([60, 40, 60]); } }
+  const head = `<span class="n">${n}</span> <b>${esc(nz(it[7]))}</b><span class="cs">${csTxt(it) || itemName(it)}</span>`;
+  if (delta > 0) { if (OKST.has(it[9])) { say('ok', head, vr); sOk(); buzz(25); } else { say('warn', head, vr); sWarn(); buzz([60, 40, 60]); } }
   render();
 }
 function handle(raw, retried) {
@@ -305,23 +402,45 @@ function hidePick() { $('pick').classList.add('hide'); $('pick').innerHTML = '';
 
 /* ---------- screen ---------- */
 function variantsOf(sale) { return (IX.bySale.get(sale) || []).slice().sort((a, b) => nz(a[0]) < nz(b[0]) ? -1 : 1); }
+const OPEN = new Set(); let FIND = '';
 function render() {
   if (!MAP) return;
   let pcs = 0; Object.values(C.counts).forEach(n => { pcs += n; });
-  const unk = Object.values(C.unknown).reduce((a, n) => a + n, 0), diff = C.codes.reduce((a, s) => a + variantsOf(s).filter(it => it[4] != null && (C.counts[nz(it[0])] || 0) !== it[4]).length, 0);
-  $('tot').innerHTML = `<div class="cell"><b>${fmt(pcs)}</b><span>${bi('pieces counted', 'ដុំដែលបានរាប់')}</span></div><div class="cell"><b>${fmt(C.codes.length)}</b><span>${bi('product codes', 'កូដទំនិញ')}</span></div><div class="cell"><b>${fmt(diff)}</b><span>${bi('variants ≠ PokPok qty', 'ប្រភេទខុសពីចំនួន PokPok')}</span></div>` + (unk ? `<div class="cell"><b style="color:#b91c1c">${fmt(unk)}</b><span>${bi('unknown labels', 'ស្លាកមិនស្គាល់')}</span></div>` : '');
+  const unk = Object.values(C.unknown).reduce((a, n) => a + n, 0);
+  $('tot').innerHTML = `<div class="cell"><b>${fmt(pcs)}</b><span>${bl('pcs', 'ដុំ')}</span></div><div class="cell"><b>${fmt(C.codes.length)}</b><span>${bl('codes', 'កូដ')}</span></div>` + (unk ? `<div class="cell"><b style="color:#b91c1c">${fmt(unk)}</b><span>${bl('unknown', 'មិនស្គាល់')}</span></div>` : '');
   $('undo').disabled = !!VIEW || !C.scans.length; $('reset').disabled = !!VIEW; $('cloudsave').disabled = !!VIEW;
   document.body.classList.toggle('viewing', !!VIEW);
-  $('codes').innerHTML = C.codes.map((s, ci) => {
+  $('findrow').classList.toggle('hide', C.codes.length < 6);
+  if (!OPEN.size && C.codes[0]) OPEN.add(C.codes[0]);
+  const q = nz(FIND), list = q ? C.codes.filter(s => s.includes(q)) : C.codes;
+  $('codes').innerHTML = list.map(s => {
     const vs = variantsOf(s), n = vs.reduce((a, it) => a + (C.counts[nz(it[0])] || 0), 0), sys = vs.reduce((a, it) => a + (it[4] || 0), 0), cur = vs.some(it => nz(it[0]) === LAST);
     const vonly = (IX.vBySale.get(s) || []).filter(v => v[3] === 'nopok' || v[3] === 'words');
-    return `<details class="code${cur ? ' cur' : ''}"${cur || ci === 0 ? ' open' : ''}><summary><b>${esc(s)}</b><span class="tag ${n === sys ? 'ok' : 'warn'}">${bl(fmt(n) + ' counted', 'រាប់បាន ' + fmt(n))}</span><span class="mut">${bl('PokPok qty ' + fmt(sys), 'ចំនួន PokPok ' + fmt(sys))}</span></summary>` +
-      vs.map(it => { const k = nz(it[0]), c = C.counts[k] || 0; return `<div class="v${c ? '' : ' zero'}${k === LAST ? ' last' : ''}"><div class="nm">${itemName(it)}<small>${esc(it[0])} · ${bl('PokPok qty ' + (it[4] == null ? '—' : fmt(it[4])), 'ចំនួន PokPok ' + (it[4] == null ? '—' : fmt(it[4])))}${OKST.has(it[9]) ? ' · Vrich ' + esc(it[6]) : ' · <b style="color:#9a3412">' + bl(esc(ST_TXT[it[9]][0]), esc(ST_TXT[it[9]][1])) + '</b>'}</small></div><div class="cnt">${c}</div><div class="pm"><button data-m="${esc(it[0])}" aria-label="minus">−</button><button data-p="${esc(it[0])}" aria-label="plus">+</button></div></div>`; }).join('') +
-      vonly.map(v => `<div class="v zero"><div class="nm">${esc(v[2])}<small>Vrich ${esc(v[0])} · <b style="color:#9a3412">${bl(esc(ST_TXT[v[3]][0]), esc(ST_TXT[v[3]][1]))}</b></small></div><div class="cnt">—</div><div></div></div>`).join('') + '</details>';
-  }).join('');
+    // colour groups, sizes in size order
+    const groups = new Map();
+    vs.forEach(it => { const cs = colourSize(it); (groups.get(cs.col) || groups.set(cs.col, []).get(cs.col)).push([it, cs.size]); });
+    const body = [...groups.entries()].map(([col, rows]) => {
+      rows.sort((a, b) => szRank(a[1]) - szRank(b[1]) || String(a[1]).localeCompare(String(b[1])));
+      const gt = rows.reduce((a, [it]) => a + (C.counts[nz(it[0])] || 0), 0), cc = colourOf(col);
+      return `<div class="cg">${col !== '—' ? `<span class="sw" style="background:#${cc[0]}"></span>` : ''}<span>${esc(col === '—' ? s : col)}</span><span class="mut" style="margin-left:auto">${gt}</span></div>` +
+        rows.map(([it, size]) => { const k = nz(it[0]), c = C.counts[k] || 0;
+          return `<div class="v${c ? '' : ' zero'}${k === LAST ? ' last' : ''}"><div class="sz">${esc(size === '—' ? '' : size)}</div><div class="nm">${esc(it[0])}<br>PokPok ${it[4] == null ? '—' : fmt(it[4])}${OKST.has(it[9]) ? '' : '<small><b style="color:#9a3412">⚠ ' + bl(esc(ST_TXT[it[9]][0]), esc(ST_TXT[it[9]][1])) + '</b></small>'}</div><div class="cnt">${c}</div><div class="pm"><button data-m="${esc(it[0])}" aria-label="minus">−</button><button data-p="${esc(it[0])}" aria-label="plus">+</button></div></div>`; }).join('');
+    }).join('');
+    return `<details class="code${cur ? ' cur' : ''}" data-s="${esc(s)}"${cur || OPEN.has(s) || q ? ' open' : ''}><summary><b>${esc(s)}</b><span class="sys">PokPok ${fmt(sys)}</span><span class="pcs">${fmt(n)}<small>${bl('pcs', 'ដុំ')}</small></span><button class="pr1" data-pc="${esc(s)}" aria-label="print ${esc(s)}">🖨</button></summary>` + body +
+      vonly.map(v => `<div class="v zero"><div class="sz"></div><div class="nm">${esc(v[2])}<small>Vrich ${esc(v[0])} · <b style="color:#9a3412">${bl(esc(ST_TXT[v[3]][0]), esc(ST_TXT[v[3]][1]))}</b></small></div><div class="cnt">—</div><div></div></div>`).join('') + '</details>';
+  }).join('') + (q && !list.length ? `<div class="mut" style="margin:12px 4px">${bl('No code matches “' + esc(q) + '”', 'គ្មានកូដ «' + esc(q) + '»')}</div>` : '');
+  $('tip').innerHTML = C.codes.length ? bi('Tap 🖨 on a code to print only that code. Type a product code (e.g. E366) with ⌨ to add it with 0.', 'ចុច 🖨 លើកូដ ដើម្បីបោះពុម្ពតែកូដនោះ។ វាយកូដទំនិញ (ឧ. E366) ជាមួយ ⌨ ដើម្បីបន្ថែមវាជាមួយ 0។')
+    : bi('Scan each PokPok label once per piece. Every colour/size of a code you touch is in the report.', 'ស្កេនស្លាក PokPok ម្តង ក្នុងមួយដុំ។ គ្រប់ពណ៌/ទំហំនៃកូដដែលបានរាប់ មាននៅក្នុងរបាយការណ៍។');
+  $('codes').querySelectorAll('details.code').forEach(d => d.addEventListener('toggle', () => { d.open ? OPEN.add(d.dataset.s) : OPEN.delete(d.dataset.s); }));
+  $('codes').querySelectorAll('[data-pc]').forEach(b => b.onclick = e => { e.preventDefault(); e.stopPropagation(); openChart([b.dataset.pc]); });
   $('codes').querySelectorAll('[data-p]').forEach(b => b.onclick = () => { count(IX.byPok.get(nz(b.dataset.p)), '(+)', 1); });
-  $('codes').querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const it = IX.byPok.get(nz(b.dataset.m)); if (!(C.counts[nz(it[0])] > 0)) return; count(it, '(−)', -1); say('info', `<span class="n">${C.counts[nz(it[0])]}</span> · ${itemName(it)}`, bl('−1 removed', '−1 បានដក')); });
+  $('codes').querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const it = IX.byPok.get(nz(b.dataset.m)); if (!(C.counts[nz(it[0])] > 0)) return; count(it, '(−)', -1); say('info', `<span class="n">${C.counts[nz(it[0])]}</span> <b>${esc(nz(it[7]))}</b><span class="cs">${csTxt(it) || itemName(it)}</span>`, bl('−1 removed', '−1 បានដក')); });
 }
+const dockTop = () => { document.querySelector('.dock').style.top = document.querySelector('.top').offsetHeight + 'px'; };
+addEventListener('resize', dockTop);
+$('res').addEventListener('click', () => $('res').classList.toggle('open'));
+$('find').oninput = () => { FIND = $('find').value; render(); };
+$('find').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('find').blur(); focusScan(); } };
 $('undo').onclick = () => {
   if (VIEW) return;
   const s = C.scans.pop(); if (!s) return;
@@ -333,7 +452,7 @@ $('reset').onclick = async () => {
   if (VIEW) return;
   if (C.scans.length && !confirm(Lc('Start a new count? This count is cleared from this device (the copy online stays for the manager) — export the report first.', 'ចាប់ផ្តើមរាប់ថ្មី? ការរាប់នេះនឹងត្រូវលុបពីឧបករណ៍នេះ (ច្បាប់ចម្លងលើប្រព័ន្ធនៅសម្រាប់អ្នកគ្រប់គ្រង) — សូមទាញយករបាយការណ៍ជាមុនសិន។'))) return;
   if (CLOUD.ver !== CLOUD.saved) await cloudSave('now');                // the last changes go online first
-  C = newCount(); LAST = ''; save(); CLOUD.saved = CLOUD.ver; CLOUD.at = ''; CLOUD.err = ''; render(); cloudShow(); say('', '', ''); focusScan();
+  C = newCount(); LAST = ''; OPEN.clear(); FIND = ''; $('find').value = ''; moreClose(); save(); CLOUD.saved = CLOUD.ver; CLOUD.at = ''; CLOUD.err = ''; render(); cloudShow(); say('', '', ''); focusScan();
 };
 
 /* ---------- ☁ the count online (scan_counts/<count id>): one document per count, few writes ---------- */
@@ -376,7 +495,18 @@ async function cloudSave(force) {
     if (CLOUD.err === 'refused') CLOUD.off = Date.now() + 10 * 60e3;
   } finally { CLOUD.last = Date.now(); CLOUD.busy = false; cloudShow(); }
 }
-function cloudShow() {
+function cloudShow() { cloudShow2(); cloudChip(); }
+function cloudChip() {
+  const b = $('cloudchip'); if (!b) return;
+  if (VIEW) { b.className = 'chip'; b.textContent = '👁'; return; }
+  const pending = CLOUD.ver !== CLOUD.saved && (C.scans.length || C.codes.length);
+  if (CLOUD.busy) { b.className = 'chip wait'; b.textContent = '☁ …'; return; }
+  if (CLOUD.err === 'refused') { b.className = 'chip bad'; b.textContent = '☁ ✗'; return; }
+  if (CLOUD.err && pending) { b.className = 'chip wait'; b.textContent = '☁ ⚠'; return; }
+  if (pending) { b.className = 'chip wait'; b.textContent = '☁ ⏳'; return; }
+  b.className = CLOUD.at ? 'chip ok' : 'chip'; b.textContent = CLOUD.at ? '☁ ✓ ' + CLOUD.at.slice(11, 16) : '☁';
+}
+function cloudShow2() {
   const el = $('cloudst'); if (!el) return;
   if (VIEW) { el.className = 'mut'; el.innerHTML = ''; return; }
   const pending = CLOUD.ver !== CLOUD.saved && (C.scans.length || C.codes.length);
@@ -432,7 +562,7 @@ async function mgrLoad() {
   } catch (e) { const m = e.code || e.message; MGR.msg = '<b style="color:#991b1b">' + esc(/permission/i.test(m) ? L('Refused — is this the manager account, and are the Firebase rules for scan_counts in place?', 'បដិសេធ — តើនេះជាគណនីអ្នកគ្រប់គ្រង ហើយ Firebase rules សម្រាប់ scan_counts មានហើយឬនៅ?') : m) + '</b>'; }
   MGR.busy = false; mgrDraw();
 }
-$('mgr').addEventListener('toggle', async () => { if (!$('mgr').open) return; MGR.msg = ''; try { await fbInit(); } catch (e) { MGR.msg = esc(L('No internet', 'គ្មានអ៊ីនធឺណិត')); } if (mgrUser() && !MGR.list.length) mgrLoad(); else mgrDraw(); });
+false && $('mgr').addEventListener('toggle', async () => { if (!$('mgr').open) return; MGR.msg = ''; try { await fbInit(); } catch (e) { MGR.msg = esc(L('No internet', 'គ្មានអ៊ីនធឺណិត')); } if (mgrUser() && !MGR.list.length) mgrLoad(); else mgrDraw(); });
 
 // open one saved count, or several added together — read only (report, size chart and pictures work as usual)
 function openCounts(docs) {
@@ -447,7 +577,7 @@ function openCounts(docs) {
     });
     m.scans.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
     VIEW = { label: docs.map(d => (d.staff || '?') + ' (' + String(d.start || '').slice(5, 16) + ')').join(' + '), n: docs.length, noScans: docs.some(d => !d.hasScans) };
-    C = m; LAST = ''; hidePick(); render(); cloudShow(); viewBar();
+    C = m; LAST = ''; OPEN.clear(); hidePick(); moreClose(); nameShow(); render(); cloudShow(); viewBar();
     say('info', bl('👁 Opened · ' + fmt(Object.values(m.counts).reduce((a, n) => a + n, 0)) + ' pcs', '👁 បានបើក · ' + fmt(Object.values(m.counts).reduce((a, n) => a + n, 0)) + ' ដុំ'), esc(VIEW.label));
     $('viewbar').scrollIntoView({ block: 'center', behavior: 'smooth' });
   } catch (e) { MGR.msg = '<b style="color:#991b1b">' + esc(L('Could not open: ', 'មិនអាចបើក៖ ') + (e.message || e)) + '</b>'; mgrDraw(); }
@@ -461,7 +591,7 @@ function viewBar() {
     <div class="row"><button class="pri" id="viewback">${bl('↩ Back to my count', '↩ ត្រឡប់ទៅការរាប់របស់ខ្ញុំ')}</button></div>`;
   $('viewback').onclick = closeView;
 }
-function closeView() { VIEW = null; C = LS.get('session', null) || newCount(); LAST = ''; render(); cloudShow(); viewBar(); say('', '', ''); focusScan(); }
+function closeView() { VIEW = null; C = LS.get('session', null) || newCount(); LAST = ''; OPEN.clear(); nameShow(); render(); cloudShow(); viewBar(); say('', '', ''); focusScan(); }
 
 /* ---------- size chart (stock-take layout, as in the Stock Take sheet) ---------- */
 const SZ_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL'];
@@ -489,7 +619,7 @@ function sizeChart(codes) {
   return codes.map(s => {
     const cols = new Map();
     variantsOf(s).forEach(it => {
-      const c = C.counts[nz(it[0])] || 0, sys = it[4]; if (!c && !(sys > 0)) return;
+      const c = C.counts[nz(it[0])] || 0, sys = it[4]; if (!c) return;             // only what was counted
       const { col, size } = colourSize(it), m = cols.get(col) || cols.set(col, new Map()).get(col);
       const r = m.get(size) || m.set(size, { size, c: 0, sys: null, p: null }).get(size); r.c += c; if (sys != null) r.sys = (r.sys || 0) + sys; if (r.p == null && it[5] != null) r.p = +it[5];
     });
@@ -555,9 +685,10 @@ async function snap(nodes, name) {
   document.body.appendChild(cap);
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    var cv = await html2canvas(cap, { scale: 2, backgroundColor: '#ffffff', logging: false });
-    var blob = await new Promise(function (r) { cv.toBlob(r, 'image/png'); });
-    return new File([blob], name, { type: 'image/png' });
+    // Telegram: 1080 px wide (720 × 1.5), JPEG — sharp on a phone and not shrunk again by Telegram
+    var cv = await html2canvas(cap, { scale: 1.5, backgroundColor: '#ffffff', logging: false });
+    var blob = await new Promise(function (r) { cv.toBlob(r, 'image/jpeg', 0.92); });
+    return new File([blob], name.replace(/\.png$/, '.jpg'), { type: 'image/jpeg' });
   } finally { cap.remove(); }
 }
 async function give(files) {
@@ -569,8 +700,14 @@ function lib() { if (window.html2canvas) return Promise.resolve(); if (!H2C) H2C
 lib().catch(function () {});
 async function run(fn) { say('Making the picture… · កំពុងបង្កើតរូបភាព…'); try { await lib(); } catch (e) { say(e.message); return; } try { await fn(); say('✓ Done · រួចរាល់'); } catch (e) { say('Could not make the picture: ' + (e.message || e)); } }
 document.getElementById('picall').onclick = function () { run(async function () {
-  var blks = Array.prototype.slice.call(document.querySelectorAll('.blk')), files = [], per = 8, n = Math.ceil(blks.length / per);
-  for (var i = 0; i < n; i++) files.push(await snap([hd].concat(blks.slice(i * per, i * per + per)), 'vhshop-size-chart-' + STAMP + (n > 1 ? '-' + (i + 1) : '') + '.png'));
+  // one picture per phone screen (≤ 1080 × 1920 px): codes are added until the next one would make it taller; a single tall code stays whole
+  var blks = Array.prototype.slice.call(document.querySelectorAll('.blk')), files = [], groups = [], g = [], h = 0, MAXH = 1280;
+  var m = document.createElement('div'); m.className = 'cap'; document.body.appendChild(m);
+  var hh = (function () { var c = hd.cloneNode(true); m.appendChild(c); return c.offsetHeight + 8; })();
+  blks.forEach(function (b) { var c = b.cloneNode(true); c.querySelectorAll('.one').forEach(function (x) { x.remove(); }); m.appendChild(c); var bh = c.offsetHeight + 18;
+    if (g.length && hh + h + bh > MAXH) { groups.push(g); g = []; h = 0; } g.push(b); h += bh; });
+  if (g.length) groups.push(g); m.remove();
+  for (var i = 0; i < groups.length; i++) files.push(await snap([hd].concat(groups[i]), 'vhshop-size-chart-' + STAMP + (groups.length > 1 ? '-' + (i + 1) : '') + '.png'));
   await give(files);
 }); };
 // ⚡ one-tap print: the 80 mm layout becomes a 576-dot black/white picture, compressed, and goes straight to the
@@ -624,7 +761,7 @@ function thermalHtml(blocks, staff, stamp) {
     if (noCol && noSize) {
       return `<table class="tb"><tr><td class="tcode"><b>${esc(b.sale)}</b>${one}<span>${b.total} pcs</span></td></tr></table>`;
     }
-    return `<table class="tb"><tr><td class="tcode" colspan="${Math.min(list.length, TH_BAND) * 2}"><b>${esc(b.sale)}</b>${one}<span>សរុប ${b.total}</span></td></tr>` + bands.map(band => {
+    return `<table class="tb t${noCol ? 1 : Math.min(list.length, TH_BAND)}"><tr><td class="tcode" colspan="${Math.min(list.length, TH_BAND) * 2}"><b>${esc(b.sale)}</b>${one}<span>សរុប ${b.total}</span></td></tr>` + bands.map(band => {
       let h = noCol ? '' : '<tr>' + band.map(x => `<td class="tcol" colspan="2">${esc(x.col)}</td>`).join('') + '</tr>';
       const n = Math.max(...band.map(x => x.rows.length));
       for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="tsz">${esc(y.size)}${each && y.p != null ? `<small>${esc(money(y.p))}</small>` : ''}</td><td class="tq">${y.c}</td>` : '<td class="tsz"></td><td class="tq"></td>'; }).join('') + '</tr>';
@@ -634,12 +771,23 @@ function thermalHtml(blocks, staff, stamp) {
   return khBig(`<div id="thermal"><div class="thd"><b>VH Shop · តារាងស្តុក</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` + blocks.map(blk).join('') + '</div>');
 }
 function sizeChartHtml(blocks, staff, stamp) {
-  const body = blocks.map(b => `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 Save ${esc(b.sale)} · រក្សាទុក</button><div class="scroll"><table><tr><td class="code">${esc(b.sale)}</td>${'<td></td>'.repeat(PER_BAND * 2 - 1)}</tr>` + b.bands.map((band, bi) => {
-    let h = '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i]; if (!x) return '<td></td><td></td>'; const [f, t] = colourOf(x.col); return `<td class="col"><span style="background:#${f};color:#${t}">${esc(x.col)}</span></td><td></td>`; }).join('') + '</tr>';
-    const n = Math.max(...band.map(x => x.rows.length)) + 1;
-    for (let r = 0; r < n; r++) h += '<tr>' + Array.from({ length: PER_BAND }, (_, i) => { const x = band[i] && band[i].rows[r]; return x ? `<td class="sz"><span>${esc(x.size)}</span></td><td class="q">${x.c}</td>` : `<td class="sz">${band[i] ? '<span>&nbsp;</span>' : ''}</td><td></td>`; }).join('') + '</tr>';
-    return h + '<tr class="tot">' + Array.from({ length: PER_BAND }, (_, i) => `<td class="lab">${i === 0 && bi === b.bands.length - 1 ? 'សរុប ' + b.total : ''}</td><td>${band[i] ? band[i].total : ''}</td>`).join('') + '</tr>';
-  }).join('') + '</table></div></div>').join('');
+  // the table has only as many colour columns as the code has (≤5 a band) and no empty write-in row; fewer columns = bigger text
+  const FS = [0, 30, 25, 20, 17, 15];
+  const body = blocks.map(b => {
+    const list = b.bands.flat(), cols = Math.min(list.length, PER_BAND), noCol = list.every(x => x.col === '—'), noSize = list.every(x => x.rows.every(y => y.size === '—'));
+    const prices = [...new Set(list.flatMap(x => x.rows.map(y => y.p)).filter(p => p != null))];
+    const price = prices.length === 1 ? `<span class="pr">តម្លៃ ${esc(money(prices[0]))}</span>` : '';
+    const top = `<tr><td class="code" colspan="${cols * 2}"><b>${esc(b.sale)}</b>${price}<span class="ct">សរុប ${b.total}</span></td></tr>`;
+    let rows = '';
+    if (!(noCol && noSize)) rows = b.bands.map(band => {
+      const pad = cols - band.length, padTd = '<td class="e"></td><td class="e"></td>'.repeat(pad);
+      let h = noCol ? '' : '<tr>' + band.map(x => { const [f, t] = colourOf(x.col); return `<td class="col" colspan="2"><span style="background:#${f};color:#${t}">${esc(x.col)}</span></td>`; }).join('') + '<td class="e" colspan="2"></td>'.repeat(pad) + '</tr>';
+      const n = Math.max(...band.map(x => x.rows.length));
+      for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="sz"><span>${esc(y.size)}</span></td><td class="q">${y.c}</td>` : '<td class="e"></td><td class="e"></td>'; }).join('') + padTd + '</tr>';
+      return h + (band.length > 1 || b.bands.length > 1 ? '<tr class="tot">' + band.map(x => `<td class="lab">សរុប</td><td>${x.total}</td>`).join('') + padTd + '</tr>' : '');
+    }).join('');
+    return `<div class="blk" data-code="${esc(b.sale)}"><button class="one" data-html2canvas-ignore>🖼 Save ${esc(b.sale)} · រក្សាទុក</button><div class="scroll"><table class="${cols >= 4 ? 'wide' : ''}" style="--fs:${FS[cols] || 15}px">${top}${rows}</table></div></div>`;
+  }).join('');
   const head = khBig(`<div class="hd"><span>VH Shop Stock Count · តារាងទំហំ</span><span>${staff ? 'Counted by ' + esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>`);
   return `<!doctype html><html lang="km"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Size chart ${esc(stamp.slice(0, 10))}</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
@@ -647,12 +795,13 @@ function sizeChartHtml(blocks, staff, stamp) {
 body{font:14px 'Noto Sans Khmer',system-ui,sans-serif;color:#15171c;margin:12px;background:#fff}
 .hd{display:flex;justify-content:space-between;gap:12px;font-weight:700;margin-bottom:4px}.lg{font-size:11px;color:#b91c1c;margin-bottom:8px}
 table{border-collapse:collapse;width:100%;table-layout:fixed;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}
-td{border:1px solid #000;background:#fce8a6;height:30px;text-align:center;padding:2px 4px;font-size:15px}
-td.code{font-size:19px;font-weight:700}
-td.col span,td.sz span{display:block;border-radius:8px;padding:1px 3px;font-weight:700;line-height:22px}td.col span{font-size:14px;line-height:20px;padding:2px 3px;word-break:break-word}
+td{border:1px solid #000;background:#fce8a6;height:calc(var(--fs,15px) * 2);text-align:center;padding:2px 4px;font-size:var(--fs,15px)}
+td.q{font-weight:700;font-size:calc(var(--fs,15px) * 1.25)}td.e{background:#fff}
+td.code{text-align:left;padding:4px 10px;background:#fff;font-size:calc(var(--fs,15px) * 1.15);font-weight:700}td.code b{font-size:1.4em;font-weight:700;margin-right:12px}td.code .ct{float:right;line-height:1.9}td.code .pr{font-weight:700}
+td.col span,td.sz span{display:block;border-radius:8px;padding:1px 3px;font-weight:700;line-height:1.5}td.col span{line-height:1.4;padding:2px 3px;word-break:break-word}
 td.col span{border:1px solid #bbb}td.sz span{background:#e5e7eb}
 td.q.diff{color:#c62828;font-weight:700}td.q small{display:block;font-size:9px;line-height:1;font-weight:400}
-tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-size:13px}
+tr.tot td{background:#fff;font-weight:700;font-size:calc(var(--fs,15px) * 1.25)}tr.tot td.lab{font-size:var(--fs,15px)}
 .bar{position:sticky;top:0;z-index:5;background:#fff;margin:-12px -12px 10px;padding:10px 12px;border-bottom:1px solid #e5e7eb;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .bar button{font:inherit;font-size:16px;min-height:52px;padding:8px 10px;border-radius:12px;border:2px solid #2f6fed;background:#2f6fed;color:#fff;font-weight:700;cursor:pointer;touch-action:manipulation}
 .bar #qprint{grid-column:1/-1;font-size:19px;min-height:60px}.bar #qgo{grid-column:1/-1}
@@ -660,31 +809,32 @@ tr.tot td{background:#fff;font-weight:700}tr.tot td.lab{text-align:left;font-siz
 .blk{position:relative;break-inside:avoid;page-break-inside:avoid;margin-bottom:18px}.blk table{margin-bottom:0}
 .one{display:block;width:100%;font:inherit;font-size:16px;font-weight:700;min-height:48px;margin:0 0 6px;padding:8px 12px;border-radius:12px;border:2px solid #2f6fed;background:#eef4ff;color:#1d4ed8;cursor:pointer;touch-action:manipulation;text-align:left}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-@media (max-width:600px){body{margin:12px 8px}.bar{margin:-12px -8px 10px}#sheet .hd{flex-direction:column;gap:0}#sheet .scroll table{min-width:520px}}
-.cap{position:absolute;left:-10000px;top:0;width:800px;background:#fff;padding:12px}
+@media (max-width:600px){body{margin:12px 8px}.bar{margin:-12px -8px 10px}#sheet .hd{flex-direction:column;gap:0}#sheet .scroll table.wide{min-width:520px}}
+.cap{position:absolute;left:-10000px;top:0;width:720px;background:#fff;padding:12px}
 
 .qcap{position:absolute;left:-10000px;top:0;width:576px;background:#fff}
 .bar #qgo{display:none;background:#15803d;border-color:#15803d;font-size:18px}
 #thermal{--u:1px;--ln:0.5px;--lb:1.2px;display:none;width:100%;padding:calc(var(--u)*4) calc(var(--u)*7);color:#000;background:#fff}
 #thermal.q576{--u:1.905px;--ln:1px;--lb:2px;width:576px;box-sizing:border-box}
 #thermal *{color:#000;background:#fff}
-.kh{font-size:1.3em;line-height:1.15}#thermal .kh,#thermal table.tb td.tcode span.kh{font-size:1.35em;float:none;display:inline;background:transparent!important;line-height:1.1;font-weight:inherit;padding:0;border:0}
-#thermal .thd{font-size:calc(var(--u)*11);line-height:1.3;text-align:center;margin-bottom:calc(var(--u)*4)}#thermal .thd b{font-size:calc(var(--u)*14)}
+.kh{font-size:1.3em;line-height:1.15}#thermal .kh,#thermal table.tb td.tcode span.kh{font-size:1.3em;float:none;display:inline;background:transparent!important;line-height:1.1;font-weight:inherit;padding:0;border:0}
+#thermal .thd{font-size:calc(var(--u)*11);font-weight:700;line-height:1.3;text-align:center;margin-bottom:calc(var(--u)*4)}#thermal .thd b{font-size:calc(var(--u)*14)}
 #thermal .tlg{font-size:calc(var(--u)*9);margin-bottom:calc(var(--u)*4)}
-#thermal table.tb{width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 calc(var(--u)*6);break-inside:avoid;page-break-inside:avoid}
-#thermal table.tb td{border:var(--ln) solid #000;height:auto;padding:0 var(--u);text-align:center;font-size:calc(var(--u)*11);line-height:1.2;word-break:break-word}
-#thermal table.tb td.tcode{text-align:left;padding:var(--u) calc(var(--u)*3)}#thermal table.tb td.tcode b{font-size:calc(var(--u)*16)}#thermal table.tb td.tcode span{float:right;font-size:calc(var(--u)*12);font-weight:700;line-height:calc(var(--u)*20)}
-#thermal table.tb td.tcol{font-weight:700;font-size:calc(var(--u)*11)}
-#thermal table.tb td.tcode .tprice{float:none;display:inline-block;margin-left:calc(var(--u)*6);font-size:calc(var(--u)*12);line-height:calc(var(--u)*20);font-weight:700}
-#thermal table.tb td.tsz small,#thermal table.tb td.tq small{display:block;font-size:calc(var(--u)*8);font-weight:700;line-height:1;white-space:nowrap}#thermal table.tb td.tsz{font-weight:700}#thermal table.tb td.tq{font-size:calc(var(--u)*13);font-weight:700}
-#thermal table.tb tr.ttot td.tsz{font-size:calc(var(--u)*9);white-space:nowrap;padding:0}
+#thermal table.tb{--k:1;width:100%;table-layout:fixed;border-collapse:collapse;margin:0 0 calc(var(--u)*6);break-inside:avoid;page-break-inside:avoid}
+#thermal table.tb.t1{--k:1.9}#thermal table.tb.t2{--k:1.55}#thermal table.tb.t3{--k:1.25}
+#thermal table.tb td{border:var(--ln) solid #000;height:auto;padding:0 var(--u);text-align:center;font-size:calc(var(--u)*11*var(--k));line-height:1.2;word-break:break-word}
+#thermal table.tb td.tcode{text-align:left;padding:var(--u) calc(var(--u)*3)}#thermal table.tb td.tcode b{font-size:calc(var(--u)*16)}#thermal table.tb td.tcode span{float:right;font-size:calc(var(--u)*13);font-weight:700;line-height:calc(var(--u)*20)}
+#thermal table.tb td.tcol{font-weight:700;font-size:calc(var(--u)*11*var(--k))}
+#thermal table.tb td.tcode .tprice{float:none;display:inline-block;margin-left:calc(var(--u)*6);font-size:calc(var(--u)*13);line-height:calc(var(--u)*20);font-weight:700}
+#thermal table.tb td.tsz small,#thermal table.tb td.tq small{display:block;font-size:calc(var(--u)*8);font-weight:700;line-height:1;white-space:nowrap}#thermal table.tb td.tsz{font-weight:700}#thermal table.tb td.tq{font-size:calc(var(--u)*13*var(--k));font-weight:700}
+#thermal table.tb tr.ttot td.tsz{font-size:calc(var(--u)*10*var(--k));white-space:nowrap;padding:0}
 #thermal table.tb td.tdiff{border:var(--lb) solid #000}
 #thermal span.tdiff{border:var(--ln) solid #000;border-radius:calc(var(--u)*3)}
 #thermal .tlg span.tdiff{padding:0 calc(var(--u)*3)}
 #thermal table.tb td.tcode span.tpad{padding:0 calc(var(--u)*4)}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
 </head><body>
-<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button><button id="picall">🖼 Save all · រក្សាទុកទាំងអស់</button><button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button><div id="pmsg"></div>
+<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button><button id="picall">🖼 Save all · រក្សាទុកទាំងអស់</button><button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button><button onclick="window.close()" style="background:#fff;color:#334155;border-color:#94a3b8;grid-column:1/-1;min-height:46px">✕ Close · back to the count · ត្រឡប់ទៅការរាប់</button><div id="pmsg"></div>
 <div class="hint">Tap 🖼 above a code to save only that code · ចុច 🖼 លើកូដ ដើម្បីរក្សាទុកតែកូដនោះ</div></div>
 <div id="sheet">
 ${head}
@@ -692,11 +842,14 @@ ${khBig(body)}</div>
 ${thermalHtml(blocks, staff, stamp)}
 <script>${SHOT_JS.replace('__STAMP__', esc(stamp.slice(0, 16).replace(/[: ]/g, '-')))}<\/script></body></html>`;
 }
-$('printchart').onclick = () => {
-  if (!MAP || !C.codes.length) { say('warn', bl('Nothing counted yet', 'មិនទាន់បានរាប់អ្វីទេ'), ''); return; }
+function openChart(codes) {
+  if (!MAP || !codes.length) { say('warn', bl('Nothing counted yet', 'មិនទាន់បានរាប់អ្វីទេ'), ''); return; }
+  const blocks = sizeChart(codes.slice().sort());
+  if (!blocks.length) { say('warn', bl('Nothing to print for ' + esc(codes.join(', ')) + ' yet', 'មិនទាន់មានអ្វីបោះពុម្ពសម្រាប់ ' + esc(codes.join(', '))), bl('Count at least one piece first.', 'សូមរាប់យ៉ាងហោចណាស់មួយដុំជាមុនសិន។')); sWarn(); return; }
   const w = window.open('', '_blank'); if (!w) { say('warn', bl('Allow pop-ups to print', 'សូមអនុញ្ញាត pop-up ដើម្បីបោះពុម្ព'), ''); return; }
-  w.document.write(sizeChartHtml(sizeChart(C.codes.slice().sort()), curStaff(), now())); w.document.close();
-};
+  w.document.write(sizeChartHtml(blocks, curStaff(), now())); w.document.close();
+}
+$('printchart').onclick = () => openChart(C.codes);
 
 /* ---------- report (.xlsx) ---------- */
 $('export').onclick = () => {
@@ -728,10 +881,31 @@ $('export').onclick = () => {
 };
 
 /* ---------- start ---------- */
-const focusScan = () => { if (!$('countcard').classList.contains('hide')) $('scan').focus({ preventScroll: true }); };
+const focusScan = () => { if ($('countcard').classList.contains('hide') || !$('more').classList.contains('hide') || !$('namerow').classList.contains('hide')) return; const a = document.activeElement; if (a && a !== $('scan') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; $('scan').focus({ preventScroll: true }); };
 $('scan').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const v = e.target.value; e.target.value = ''; handle(v); } });
-$('staff').value = LS.get('staff', ''); $('staff').onchange = () => LS.set('staff', $('staff').value.trim());
-setLang(LANG); cloudShow();
+$('staff').value = LS.get('staff', '');
+/* name: asked once, then shown as a line with ✎ */
+let NAMEEDIT = false;
+function nameShow() {
+  const v = $('staff').value.trim(), edit = NAMEEDIT || !v;
+  $('namerow').classList.toggle('hide', !edit || !!VIEW); $('namechip').classList.toggle('hide', edit || !!VIEW);
+  if (!edit) { $('namechip').innerHTML = `👤 ${bl('Counting', 'អ្នករាប់')}: <b>${esc(v)}</b><button id="namechg">✎ ${bl('Change', 'ប្តូរ')}</button>`; $('namechg').onclick = nameEdit; }
+}
+function nameEdit() { NAMEEDIT = true; nameShow(); $('staff').focus(); $('staff').select(); }
+function nameDone() { const v = $('staff').value.trim(); if (!v) { $('staff').focus(); return; } LS.set('staff', v); NAMEEDIT = false; nameShow(); say('ok', bl('👤 ' + esc(v) + ' — ready', '👤 ' + esc(v) + ' — រួចរាល់'), bl('Scan the first PokPok label.', 'ស្កេនស្លាក PokPok ដំបូង។')); focusScan(); }
+$('nameok').onclick = nameDone;
+$('staff').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); nameDone(); } };
+$('staff').onchange = () => LS.set('staff', $('staff').value.trim());
+/* ⌨: the scanner types by itself, so the phone keyboard stays hidden unless ⌨ is on */
+$('kbd').onclick = () => { const on = $('scan').inputMode !== 'text'; $('scan').inputMode = on ? 'text' : 'none'; $('kbd').classList.toggle('on', on); $('scan').blur(); setTimeout(() => $('scan').focus(), 30); };
+/* ⋯ More */
+function moreOpen() { $('more').classList.remove('hide'); $('morebg').classList.remove('hide'); document.body.classList.add('sheeton'); cloudShow(); }
+function moreClose() { $('more').classList.add('hide'); $('morebg').classList.add('hide'); document.body.classList.remove('sheeton'); }
+$('morebtn').onclick = moreOpen; $('cloudchip').onclick = moreOpen; $('morebg').onclick = () => { moreClose(); focusScan(); }; $('moreclose').onclick = () => { moreClose(); focusScan(); };
+$('mapcheck2').onclick = () => { moreClose(); $('mapcheck').click(); };
+/* keep the scan box ready: a tap anywhere else (not on a field) puts the cursor back */
+document.addEventListener('click', e => { if (e.target.closest('input,textarea,select,label,#more,#mapcard,#pick')) return; setTimeout(focusScan, 0); });
+setLang(LANG); cloudShow(); say('', '', ''); dockTop();
 (async () => { const m = await IDB.get('map'); if (m && Array.isArray(m.items)) { MAP = m; IX = index(m); } showMapInfo(); render(); checkMap(true); if (C.scans.length) say('info', bl('Count continued', 'បន្តការរាប់'), bl(fmt(C.scans.length) + ' scans on this device since ' + esc(C.start), fmt(C.scans.length) + ' ស្កេនលើឧបករណ៍នេះ ចាប់ពី ' + esc(C.start))); focusScan(); })();
 </script>
 </body>
