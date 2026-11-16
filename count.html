@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7">
 <title>VH Shop Stock Count</title>
-<!-- 14 Nov 2026 g: 🖼 pictures made for Telegram: 1080 px wide JPEG, one picture per phone screen (≤ 1920 px tall),
+<!-- 16 Nov 2026: 💻 "Open counts on a laptop" is back — ⋯ More → 💻 Manager: log in with the upload-page manager account,
+     see every count saved online by the phones (name · pcs · codes · saved time), Open one or tick several → combine.
+     80 mm print: 🔫 dashed cut line + ~10 mm blank above every code for the tag gun; សរុប only in the code head (no bottom
+     សរុប row); codes with colours but no sizes drop the "—" column (bigger text); 📏 minimum row/text size so 5-colour codes
+     never print tiny.
+     14 Nov 2026 g: 🖼 pictures made for Telegram: 1080 px wide JPEG, one picture per phone screen (≤ 1920 px tall),
      so Telegram does not shrink them; "Save all" makes as many pictures as needed.
      14 Nov 2026 f: one type scale everywhere. Page: 13 small · 16 text/buttons · 20 titles, codes, sizes · 26 counts · 44 the
      scan number; only normal (400) and bold (700). Chart/picture/print: labels (colour, size, សរុប) one size bold, numbers
@@ -218,6 +223,7 @@ body.viewing .bbar #undo{visibility:hidden}
   <button class="big" id="cloudsave"></button>
   <div id="cloudst" class="mut"></div>
   <button class="big" id="mapcheck2"></button>
+  <details class="mgr" id="mgr"><summary><span class="bl"><span class="en">💻 Manager · open counts from phones</span><span class="km">💻 អ្នកគ្រប់គ្រង · បើកការរាប់ពីទូរស័ព្ទ</span></span></summary><div id="mgrbody"></div></details>
   <button class="danger big" id="reset"></button>
   <button class="big" id="moreclose"></button>
 </div>
@@ -562,7 +568,7 @@ async function mgrLoad() {
   } catch (e) { const m = e.code || e.message; MGR.msg = '<b style="color:#991b1b">' + esc(/permission/i.test(m) ? L('Refused — is this the manager account, and are the Firebase rules for scan_counts in place?', 'បដិសេធ — តើនេះជាគណនីអ្នកគ្រប់គ្រង ហើយ Firebase rules សម្រាប់ scan_counts មានហើយឬនៅ?') : m) + '</b>'; }
   MGR.busy = false; mgrDraw();
 }
-false && $('mgr').addEventListener('toggle', async () => { if (!$('mgr').open) return; MGR.msg = ''; try { await fbInit(); } catch (e) { MGR.msg = esc(L('No internet', 'គ្មានអ៊ីនធឺណិត')); } if (mgrUser() && !MGR.list.length) mgrLoad(); else mgrDraw(); });
+$('mgr').addEventListener('toggle', async () => { if (!$('mgr').open) return; MGR.msg = ''; try { await fbInit(); } catch (e) { MGR.msg = esc(L('No internet', 'គ្មានអ៊ីនធឺណិត')); } if (mgrUser() && !MGR.list.length) mgrLoad(); else mgrDraw(); });
 
 // open one saved count, or several added together — read only (report, size chart and pictures work as usual)
 function openCounts(docs) {
@@ -677,16 +683,16 @@ function sizeChartSheet(blocks, staff, stamp) {
 // runs in the chart window: 🖼 = PNG via html2canvas — the whole chart (in parts of ≤ 8 codes, so a picture never gets too tall
 // for a phone) or one code. On a phone that can share files it opens the share sheet (Telegram…), otherwise it downloads.
 const SHOT_JS = String.raw`
-var STAMP = '__STAMP__', hd = document.querySelector('.hd');
+var STAMP = '__STAMP__', hd = document.querySelector('#pics .phd');
 function say(t) { document.getElementById('pmsg').textContent = t; }
 async function snap(nodes, name) {
   var cap = document.createElement('div'); cap.className = 'cap';
-  nodes.forEach(function (n) { var c = n.cloneNode(true); c.querySelectorAll('.one').forEach(function (b) { b.remove(); }); cap.appendChild(c); });
+  nodes.forEach(function (n) { cap.appendChild(n.cloneNode(true)); });
   document.body.appendChild(cap);
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     // Telegram: 1080 px wide (720 × 1.5), JPEG — sharp on a phone and not shrunk again by Telegram
-    var cv = await html2canvas(cap, { scale: 1.5, backgroundColor: '#ffffff', logging: false });
+    var cv = await html2canvas(cap, { scale: 2.25, backgroundColor: '#ffffff', logging: false });
     var blob = await new Promise(function (r) { cv.toBlob(r, 'image/jpeg', 0.92); });
     return new File([blob], name.replace(/\.png$/, '.jpg'), { type: 'image/jpeg' });
   } finally { cap.remove(); }
@@ -701,10 +707,12 @@ lib().catch(function () {});
 async function run(fn) { say('Making the picture… · កំពុងបង្កើតរូបភាព…'); try { await lib(); } catch (e) { say(e.message); return; } try { await fn(); say('✓ Done · រួចរាល់'); } catch (e) { say('Could not make the picture: ' + (e.message || e)); } }
 document.getElementById('picall').onclick = function () { run(async function () {
   // one picture per phone screen (≤ 1080 × 1920 px): codes are added until the next one would make it taller; a single tall code stays whole
-  var blks = Array.prototype.slice.call(document.querySelectorAll('.blk')), files = [], groups = [], g = [], h = 0, MAXH = 1280;
+  // Telegram shows a picture up to about 4:5 (portrait) at full bubble width — taller ones are shrunk, so a picture is
+  // at most 480 × 600 (1080 × 1350 px) and the text stays readable in the chat without opening it
+  var blks = Array.prototype.slice.call(document.querySelectorAll('#pics .pblk')), files = [], groups = [], g = [], h = 0, MAXH = 600;
   var m = document.createElement('div'); m.className = 'cap'; document.body.appendChild(m);
-  var hh = (function () { var c = hd.cloneNode(true); m.appendChild(c); return c.offsetHeight + 8; })();
-  blks.forEach(function (b) { var c = b.cloneNode(true); c.querySelectorAll('.one').forEach(function (x) { x.remove(); }); m.appendChild(c); var bh = c.offsetHeight + 18;
+  var hh = (function () { var c = hd.cloneNode(true); m.appendChild(c); return c.offsetHeight; })();
+  blks.forEach(function (b) { var c = b.cloneNode(true); m.appendChild(c); var bh = c.offsetHeight + 14;
     if (g.length && hh + h + bh > MAXH) { groups.push(g); g = []; h = 0; } g.push(b); h += bh; });
   if (g.length) groups.push(g); m.remove();
   for (var i = 0; i < groups.length; i++) files.push(await snap([hd].concat(groups[i]), 'vhshop-size-chart-' + STAMP + (groups.length > 1 ? '-' + (i + 1) : '') + '.png'));
@@ -741,7 +749,7 @@ document.getElementById('qprint').onclick = function () {
   }).catch(function (e) { say('Could not print: ' + (e.message || e)); });
 };
 document.getElementById('qgo').onclick = function () { if (QURL) { location.href = QURL; this.style.display = 'none'; say('Sent to VH Print ✓'); } };
-document.querySelectorAll('.one').forEach(function (b) { b.onclick = function () { var blk = b.closest('.blk'); run(async function () { await give([await snap([hd, blk], 'vhshop-size-chart-' + blk.dataset.code + '-' + STAMP + '.png')]); }); }; });
+document.querySelectorAll('.one').forEach(function (b) { b.onclick = function () { var code = b.closest('.blk').dataset.code, blk = Array.prototype.find.call(document.querySelectorAll('#pics .pblk'), function (x) { return x.dataset.code === code; }); run(async function () { await give([await snap([hd, blk], 'vhshop-size-chart-' + code + '-' + STAMP + '.png')]); }); }; });
 `;
 // 🖨 print layout for the SUNMI V2s PLUS built-in printer (80 mm roll): black and white only (no fills or greys — the
 // thermal head turns them into dots), only the colours a code really has (no empty colour slots, no blank row to write in),
@@ -783,6 +791,30 @@ function thermalHtml(blocks, staff, stamp) {
   };
   return khBig(`<div id="thermal"><div class="thd"><b>VH Shop · តារាងស្តុក</b><br>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</div>` + blocks.map(blk).join('') + '</div>');
 }
+// 🖼 picture layout for Telegram (480 px wide → 1080 px): read in the chat without opening it. Fixed big sizes (never
+// shrink with more colours): code 30 · colour 21 · size 20 · qty 28. Colours without sizes drop the "—" column. ≤ 4 colours
+// a band with sizes, ≤ 5 without. សរុប only in the code head, as on the 80 mm print.
+function picHtml(blocks, staff, stamp) {
+  const blk = b => {
+    const list = b.bands.flat(), noCol = list.every(x => x.col === '—'), noSize = list.every(x => x.rows.every(y => y.size === '—'));
+    const per = noSize ? 5 : 4, bands = []; for (let i = 0; i < list.length; i += per) bands.push(list.slice(i, i + per));
+    const prices = [...new Set(list.flatMap(x => x.rows.map(y => y.p)).filter(p => p != null))];
+    const price = prices.length === 1 ? `<span class="pp">${esc(money(prices[0]))}</span>` : '';
+    const w = noCol ? 1 : Math.min(list.length, per), span = noSize ? w : w * 2;
+    const chip = c => { const [f, t] = colourOf(c); return `<span class="chip" style="background:#${f};color:#${t}">${esc(c)}</span>`; };
+    let rows = '';
+    if (noCol && noSize) rows = '';
+    else if (noSize) rows = bands.map(band => '<tr>' + band.map(x => `<td class="pc">${chip(x.col)}</td>`).join('') + '<td class="pe"></td>'.repeat(w - band.length) + '</tr><tr>' + band.map(x => `<td class="pq">${x.total}</td>`).join('') + '<td class="pe"></td>'.repeat(w - band.length) + '</tr>').join('');
+    else rows = bands.map(band => {
+      let h = noCol ? '' : '<tr>' + band.map(x => `<td class="pc" colspan="2">${chip(x.col)}</td>`).join('') + '<td class="pe" colspan="2"></td>'.repeat(w - band.length) + '</tr>';
+      const n = Math.max(...band.map(x => x.rows.length));
+      for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="ps">${esc(y.size)}</td><td class="pq">${y.c}</td>` : '<td class="pe"></td><td class="pe"></td>'; }).join('') + '<td class="pe"></td><td class="pe"></td>'.repeat(w - band.length) + '</tr>';
+      return h + (n > 1 ? '<tr class="pt">' + band.map(x => `<td class="pe"></td><td class="pq">${x.total}</td>`).join('') + '<td class="pe"></td><td class="pe"></td>'.repeat(w - band.length) + '</tr>' : '');
+    }).join('');
+    return `<div class="pblk" data-code="${esc(b.sale)}"><table><tr><td class="ph" colspan="${span}"><b>${esc(b.sale)}</b>${price}<span class="pn">សរុប ${b.total}</span></td></tr>${rows}</table></div>`;
+  };
+  return khBig(`<div id="pics"><div class="phd"><b>VH Shop · តារាងស្តុក</b><span>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>` + blocks.map(blk).join('') + '</div>');
+}
 function sizeChartHtml(blocks, staff, stamp) {
   // the table has only as many colour columns as the code has (≤5 a band) and no empty write-in row; fewer columns = bigger text
   const FS = [0, 30, 25, 20, 17, 15];
@@ -823,7 +855,18 @@ tr.tot td{background:#fff;font-weight:700;font-size:calc(var(--fs,15px) * 1.25)}
 .one{display:block;width:100%;font:inherit;font-size:16px;font-weight:700;min-height:48px;margin:0 0 6px;padding:8px 12px;border-radius:12px;border:2px solid #2f6fed;background:#eef4ff;color:#1d4ed8;cursor:pointer;touch-action:manipulation;text-align:left}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 @media (max-width:600px){body{margin:12px 8px}.bar{margin:-12px -8px 10px}#sheet .hd{flex-direction:column;gap:0}#sheet .scroll table.wide{min-width:520px}}
-.cap{position:absolute;left:-10000px;top:0;width:720px;background:#fff;padding:12px}
+.cap{position:absolute;left:-10000px;top:0;width:480px;background:#fff;padding:10px}
+#pics{position:absolute;left:-10000px;top:0;width:480px}
+.cap .phd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:15px;color:#475569;margin-bottom:8px}.cap .phd b{font-size:17px;color:#15171c}
+.cap .pblk{margin-bottom:14px}.cap .pblk:last-child{margin-bottom:0}
+.cap .pblk table{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}
+.cap .pblk td{border:1.5px solid #000;text-align:center;padding:3px 2px;height:44px;background:#fce8a6;line-height:1.15;word-break:break-word}
+.cap .pblk td.ph{background:#fff;text-align:left;padding:4px 10px;font-size:20px;font-weight:700}.cap .pblk td.ph b{font-size:30px;margin-right:12px}
+.cap .pblk td.ph .pp{font-size:22px}.cap .pblk td.ph .pn{float:right;font-size:22px;line-height:40px}
+.cap .pblk td.pc{background:#fff;padding:3px}.cap .pblk .chip{display:block;border-radius:8px;border:1px solid #bbb;padding:3px 2px;font-size:21px;font-weight:700}
+.cap .pblk td.ps{font-size:20px;font-weight:700;background:#e5e7eb}.cap .pblk td.pq{font-size:28px;font-weight:700;background:#fff}
+.cap .pblk td.pe{background:#fff}.cap .pblk tr.pt td{border-top:3px solid #000}
+
 
 .qcap{position:absolute;left:-10000px;top:0;width:576px;background:#fff}
 .bar #qgo{display:none;background:#15803d;border-color:#15803d;font-size:18px}
@@ -862,6 +905,7 @@ tr.tot td{background:#fff;font-weight:700;font-size:calc(var(--fs,15px) * 1.25)}
 ${head}
 ${khBig(body)}</div>
 ${thermalHtml(blocks, staff, stamp)}
+${picHtml(blocks, staff, stamp)}
 <script>${SHOT_JS.replace('__STAMP__', esc(stamp.slice(0, 16).replace(/[: ]/g, '-')))}<\/script></body></html>`;
 }
 function openChart(codes) {
