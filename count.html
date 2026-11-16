@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7">
 <title>VH Shop Stock Count</title>
-<!-- 16 Nov 2026: 💻 "Open counts on a laptop" is back — ⋯ More → 💻 Manager: log in with the upload-page manager account,
+<!-- 16 Nov 2026 b: 🖼 pictures for Telegram: 480 px layout ×2.25 (1080 px), big fixed text readable in the chat;
+     ONE picture per code, shared one at a time with the caption "CODE · សរុប n" (📤 Send next after each); laptop: downloads.
+     16 Nov 2026: 💻 "Open counts on a laptop" is back — ⋯ More → 💻 Manager: log in with the upload-page manager account,
      see every count saved online by the phones (name · pcs · codes · saved time), Open one or tick several → combine.
      80 mm print: 🔫 dashed cut line + ~10 mm blank above every code for the tag gun; សរុប only in the code head (no bottom
      សរុប row); codes with colours but no sizes drop the "—" column (bigger text); 📏 minimum row/text size so 5-colour codes
@@ -697,27 +699,37 @@ async function snap(nodes, name) {
     return new File([blob], name.replace(/\.png$/, '.jpg'), { type: 'image/jpeg' });
   } finally { cap.remove(); }
 }
-async function give(files) {
-  if (navigator.canShare && navigator.canShare({ files: files })) { try { await navigator.share({ files: files }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+async function give(files, text) {
+  if (navigator.canShare && navigator.canShare({ files: files })) {
+    var d = { files: files }; if (text && navigator.canShare({ files: files, text: text })) d.text = text;   // text = Telegram caption
+    try { await navigator.share(d); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   files.forEach(function (f, i) { setTimeout(function () { var a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }, i * 400); });
 }
 var H2C = null;
 function lib() { if (window.html2canvas) return Promise.resolve(); if (!H2C) H2C = new Promise(function (ok, no) { var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload = ok; s.onerror = function () { H2C = null; no(new Error('no internet — the picture tool did not load')); }; document.head.appendChild(s); }); return H2C; }
 lib().catch(function () {});
 async function run(fn) { say('Making the picture… · កំពុងបង្កើតរូបភាព…'); try { await lib(); } catch (e) { say(e.message); return; } try { await fn(); say('✓ Done · រួចរាល់'); } catch (e) { say('Could not make the picture: ' + (e.message || e)); } }
-document.getElementById('picall').onclick = function () { run(async function () {
-  // one picture per phone screen (≤ 1080 × 1920 px): codes are added until the next one would make it taller; a single tall code stays whole
-  // Telegram shows a picture up to about 4:5 (portrait) at full bubble width — taller ones are shrunk, so a picture is
-  // at most 480 × 600 (1080 × 1350 px) and the text stays readable in the chat without opening it
-  var blks = Array.prototype.slice.call(document.querySelectorAll('#pics .pblk')), files = [], groups = [], g = [], h = 0, MAXH = 600;
-  var m = document.createElement('div'); m.className = 'cap'; document.body.appendChild(m);
-  var hh = (function () { var c = hd.cloneNode(true); m.appendChild(c); return c.offsetHeight; })();
-  blks.forEach(function (b) { var c = b.cloneNode(true); m.appendChild(c); var bh = c.offsetHeight + 14;
-    if (g.length && hh + h + bh > MAXH) { groups.push(g); g = []; h = 0; } g.push(b); h += bh; });
-  if (g.length) groups.push(g); m.remove();
-  for (var i = 0; i < groups.length; i++) files.push(await snap([hd].concat(groups[i]), 'vhshop-size-chart-' + STAMP + (groups.length > 1 ? '-' + (i + 1) : '') + '.png'));
-  await give(files);
-}); };
+// 🖼 Save all = ONE picture per code, sent one at a time so Telegram puts the code as the caption under each picture
+// (a phone can only open the share sheet after a tap, so after each send a big "📤 Send next" button appears)
+var PQ = { list: [], i: 0 };
+function pblkOf(code) { return Array.prototype.find.call(document.querySelectorAll('#pics .pblk'), function (x) { return x.dataset.code === code; }); }
+function capOf(b) { return b.dataset.code + ' · សរុប ' + b.dataset.total; }
+async function sendCode(b) { await give([await snap([hd, b], 'vhshop-' + b.dataset.code + '-' + STAMP + '.png')], capOf(b)); }
+function nextBtn() {
+  var nb = document.getElementById('picnext'), left = PQ.list.length - PQ.i;
+  if (left <= 0) { nb.style.display = 'none'; return; }
+  nb.style.display = 'block'; nb.textContent = '📤 Send next · ផ្ញើបន្ទាប់: ' + PQ.list[PQ.i].dataset.code + ' (' + (PQ.i + 1) + '/' + PQ.list.length + ')';
+}
+async function sendNext() { var b = PQ.list[PQ.i]; if (!b) return; await sendCode(b); PQ.i++; nextBtn(); if (PQ.i >= PQ.list.length) say('✓ All ' + PQ.list.length + ' codes sent · ផ្ញើគ្រប់កូដរួចរាល់'); }
+document.getElementById('picall').onclick = function () {
+  PQ.list = Array.prototype.slice.call(document.querySelectorAll('#pics .pblk')); PQ.i = 0;
+  if (!(navigator.canShare && navigator.canShare({ files: [new File([''], 'x.jpg', { type: 'image/jpeg' })] }))) {
+    // no share sheet (laptop): download every code as its own picture, named by code
+    run(async function () { for (var i = 0; i < PQ.list.length; i++) { await sendCode(PQ.list[i]); } PQ.i = PQ.list.length; nextBtn(); }); return;
+  }
+  run(sendNext);
+};
+document.getElementById('picnext').onclick = function () { run(sendNext); };
 // ⚡ one-tap print: the 80 mm layout becomes a 576-dot black/white picture, compressed, and goes straight to the
 // VH Print app (vhprint://raster) — no print screen. Needs VH Print 1.1+ on the SUNMI.
 var QURL = '';
@@ -749,7 +761,7 @@ document.getElementById('qprint').onclick = function () {
   }).catch(function (e) { say('Could not print: ' + (e.message || e)); });
 };
 document.getElementById('qgo').onclick = function () { if (QURL) { location.href = QURL; this.style.display = 'none'; say('Sent to VH Print ✓'); } };
-document.querySelectorAll('.one').forEach(function (b) { b.onclick = function () { var code = b.closest('.blk').dataset.code, blk = Array.prototype.find.call(document.querySelectorAll('#pics .pblk'), function (x) { return x.dataset.code === code; }); run(async function () { await give([await snap([hd, blk], 'vhshop-size-chart-' + code + '-' + STAMP + '.png')]); }); }; });
+document.querySelectorAll('.one').forEach(function (b) { b.onclick = function () { var blk = pblkOf(b.closest('.blk').dataset.code); run(function () { return sendCode(blk); }); }; });
 `;
 // 🖨 print layout for the SUNMI V2s PLUS built-in printer (80 mm roll): black and white only (no fills or greys — the
 // thermal head turns them into dots), only the colours a code really has (no empty colour slots, no blank row to write in),
@@ -811,7 +823,7 @@ function picHtml(blocks, staff, stamp) {
       for (let r = 0; r < n; r++) h += '<tr>' + band.map(x => { const y = x.rows[r]; return y ? `<td class="ps">${esc(y.size)}</td><td class="pq">${y.c}</td>` : '<td class="pe"></td><td class="pe"></td>'; }).join('') + '<td class="pe"></td><td class="pe"></td>'.repeat(w - band.length) + '</tr>';
       return h + (n > 1 ? '<tr class="pt">' + band.map(x => `<td class="pe"></td><td class="pq">${x.total}</td>`).join('') + '<td class="pe"></td><td class="pe"></td>'.repeat(w - band.length) + '</tr>' : '');
     }).join('');
-    return `<div class="pblk" data-code="${esc(b.sale)}"><table><tr><td class="ph" colspan="${span}"><b>${esc(b.sale)}</b>${price}<span class="pn">សរុប ${b.total}</span></td></tr>${rows}</table></div>`;
+    return `<div class="pblk" data-code="${esc(b.sale)}" data-total="${b.total}"><table><tr><td class="ph" colspan="${span}"><b>${esc(b.sale)}</b>${price}<span class="pn">សរុប ${b.total}</span></td></tr>${rows}</table></div>`;
   };
   return khBig(`<div id="pics"><div class="phd"><b>VH Shop · តារាងស្តុក</b><span>${staff ? esc(staff) + ' · ' : ''}${esc(stamp.slice(0, 16))}</span></div>` + blocks.map(blk).join('') + '</div>');
 }
@@ -899,7 +911,7 @@ tr.tot td{background:#fff;font-weight:700;font-size:calc(var(--fs,15px) * 1.25)}
 #thermal table.tb td.tcode span.tpad{padding:0 calc(var(--u)*4)}
 @media print{html,body{margin:0!important;padding:0!important;width:100%}.bar,.one,#sheet{display:none!important}#thermal{display:block}}</style>
 </head><body>
-<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button><button id="picall">🖼 Save all · រក្សាទុកទាំងអស់</button><button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button><button onclick="window.close()" style="background:#fff;color:#334155;border-color:#94a3b8;grid-column:1/-1;min-height:46px">✕ Close · back to the count · ត្រឡប់ទៅការរាប់</button><div id="pmsg"></div>
+<div class="bar"><button id="qprint" style="background:#15803d;border-color:#15803d">⚡ Print now · បោះពុម្ពភ្លាម</button><button id="qgo">🖨 Send to printer · ផ្ញើទៅម៉ាស៊ីនព្រីន</button><button id="picall">🖼 Send each code · ផ្ញើកូដម្តងមួយ</button><button id="picnext" style="display:none;grid-column:1/-1;background:#15803d;border-color:#15803d;font-size:19px;min-height:60px"></button><button onclick="print()" style="background:#fff;color:#2f6fed">🖨 Choose printer…</button><button onclick="window.close()" style="background:#fff;color:#334155;border-color:#94a3b8;grid-column:1/-1;min-height:46px">✕ Close · back to the count · ត្រឡប់ទៅការរាប់</button><div id="pmsg"></div>
 <div class="hint">Tap 🖼 above a code to save only that code · ចុច 🖼 លើកូដ ដើម្បីរក្សាទុកតែកូដនោះ</div></div>
 <div id="sheet">
 ${head}
