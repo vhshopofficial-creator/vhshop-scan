@@ -21,6 +21,7 @@
      1.3 (9 Nov 2026): 🗺 PokPok ↔ Vrich map (from VHM Scan Verify) — built from the lists online + 🔗 links, published to
      scan_meta/stockmap + scan_catalog/map_<ver>_<i> after every PokPok / Vrich upload and 🔗 links / Same words change (only when it
      really changed). The Stock Count page (count.html) reads it. Download as CSV or as a map file. 
+     22 Nov 2026: issues of orders that were packed after the issue close automatically (once a day + button) — see closePacked.
      22 Nov 2026: 🔁 Pack again — a machine that scans an order already packed (complete or shipped short) is blocked and can ask
      here. Approve = the order may be scanned once more (used up when complete again); Reject = staff put the items back.
      "System is wrong?" issues of a completed order stay here for you; phones stop showing them.
@@ -1196,7 +1197,7 @@ async function drawIssues() {
   $('issn').textContent = ST.issues.length ? '(' + ST.issues.length + ')' : '';
   const btn = (id, act, label, cls) => `<button data-act="${act}" data-id="${esc(id)}" class="${cls || ''}" style="min-height:32px;white-space:nowrap">${esc(label)}</button>`;
   const rows = (head, list, cells) => foldRows(head.map(x => '<th>' + esc(x) + '</th>').join(''), list.map(i => '<tr>' + cells(i).map(c => '<td>' + c + '</td>').join('') + '</tr>'));
-  let h = `<div class="row"><button id="issref">↻ Refresh</button><span class="mut">${fmt(ST.issues.length)} open. Issues close by themselves when staff finish the order. Anything still open after ${EXPIRE.other} days (Mixed records and unanswered ship-short requests: ${EXPIRE.allowed} days) is closed automatically once a day${ST.expired && ST.expired.n ? ` — <b>${fmt(ST.expired.n)}</b> old issue(s) closed automatically today` : ''}.</span><button id="issexp" style="min-height:32px">Close old issues now</button></div>`;
+  let h = `<div class="row"><button id="issref">↻ Refresh</button><span class="mut">${fmt(ST.issues.length)} open. Issues close by themselves when staff finish the order. Anything still open after ${EXPIRE.other} days (Mixed records and unanswered ship-short requests: ${EXPIRE.allowed} days) is closed automatically once a day${ST.expired && ST.expired.n ? ` — <b>${fmt(ST.expired.n)}</b> old issue(s) closed automatically today` : ''}${ST.packed && (ST.packed.n || ST.packed.hidden) ? ` — <b>${fmt(ST.packed.n)}</b> closed because the order was already packed${ST.packed.hidden ? ` (${fmt(ST.packed.hidden)} "System is wrong?" kept here, removed from phones)` : ''}` : ''}.</span><button id="issexp" style="min-height:32px">Close old + packed issues now</button></div>`;
   h += `<h3>🔁 Pack again — order was already packed <span class="tag ${rpq.length ? 'bad' : 'ok'}">${rpq.length}</span></h3><div class="mut">Staff scanned an order that was already scanned complete (or shipped short). Approve only if it really must be packed again (customer changed it, box damaged) — otherwise it may be shipped twice.</div>`;
   if (rpq.length) h += rows(['Order', 'Customer', 'Packed before', 'Why again', 'When', 'Your note', ''], rpq, i => ['#' + esc(i.order), esc(i.fb || ''), esc((i.expected || '').replace(/^Packed before: /, '')), esc(i.reason), esc(V.when(i.t)), `<input data-note="${esc(i.id)}" placeholder="optional" style="min-width:140px">`, btn(i.id, 'rpok', '✓ Approve', 'pri') + ' ' + btn(i.id, 'rpno', '✗ Reject', 'danger')]);
   if (rpok.length) h += `<details><summary>${rpok.length} approved, not packed again yet</summary>` + rows(['Order', 'Approved', 'Packed before', 'When', ''], rpok, i => ['#' + esc(i.order), esc(i.reason), esc((i.expected || '').replace(/^Packed before: /, '')), esc(V.when(i.approvedAt || i.t)), btn(i.id, 'rpcancel', 'Withdraw')]) + '</details>';
@@ -1221,7 +1222,7 @@ async function drawIssues() {
   if (rest.length) h += `<div class="row"><span class="mut">Close all ${fmt(rest.length)} remaining open issue(s) as:</span><select id="issreason"><option value="">— choose a reason —</option><option value="other">Checked by manager</option><option value="mistake">Mistake scans</option></select><input id="issnote" placeholder="Note (required)"><button id="issclear" class="danger">Close all…</button></div>`;
   el.innerHTML = h;
   $('issref').onclick = drawIssues;
-  $('issexp').onclick = async () => { $('issexp').disabled = true; try { const n = await autoExpire(true); ST.expired = { n: (n || 0), at: V.localNow() }; } catch (e) { alert(nice(e)); } drawIssues(); };
+  $('issexp').onclick = async () => { $('issexp').disabled = true; try { const n = await autoExpire(true); ST.expired = { n: (n || 0), at: V.localNow() }; await closePacked(true); } catch (e) { alert(nice(e)); } drawIssues(); };
   el.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
     b.disabled = true; const id = b.dataset.id, act = b.dataset.act, is = ST.issues.find(i => i.id === id), ni = el.querySelector(`[data-note="${CSS.escape(id)}"]`), note = ni ? clean(ni.value) : '';
     try {
@@ -1417,6 +1418,34 @@ async function autoExpire(force) {
   ST.expired = { n: old.length, at: now };
   return old.length;
 }
+/* ---------- 22 Nov 2026: close issues of orders that were packed after the issue ----------
+   A machine closes an order's issues when it scans the order complete, but before 1.3 that close was lost when the Wi-Fi
+   dropped or the page was reloaded, and "System is wrong?" issues never left the staff phones. Here, for every open issue,
+   the scan log is checked (scan_log, 30 orders per read): if the order was scanned complete / shipped short AFTER the issue,
+   the issue is closed ('completed', clearedBy 'auto (order packed)'); a "System is wrong?" issue stays open for the
+   manager but is marked done so phones stop showing it. Runs once a day when this page opens, and with the button. */
+async function closePacked(force) {
+  if (!force && ST.settings && ST.settings.lastPacked === V.today()) return 0;
+  const docs = await store.query(COL.issues, [['status', '==', 'open']]), now = V.localNow();
+  const skip = ['short', 'shortreq', 'quirk', 'allowed', 'repackreq'];
+  const cand = docs.filter(({ data: i }) => i.order && !skip.includes(i.type) && !(i.disputed && i.doneAt));
+  const orders = [...new Set(cand.map(d => String(d.data.order)))], packed = new Map();
+  for (let k = 0; k < orders.length; k += 30) {
+    const L = await store.query(COL.log, [['order', 'in', orders.slice(k, k + 30)]]);
+    L.forEach(({ data: x }) => { const end = x.end || x.start || ''; if ((x.result === 'complete' || x.result === 'short') && end > (packed.get(String(x.order)) || '')) packed.set(String(x.order), end); });
+  }
+  const ops = [];
+  cand.forEach(({ id, data: i }) => {
+    const end = packed.get(String(i.order)); if (!end || end < String(i.t || '')) return;          // not packed after this issue
+    if (i.disputed) ops.push({ op: 'set', col: COL.issues, id, merge: true, data: { doneAt: end } });
+    else ops.push({ op: 'set', col: COL.issues, id, merge: true, data: { status: 'cleared', clearedAt: now, clearedBy: 'auto (order packed)', resolution: 'completed', note: 'Order was scanned complete ' + V.when(end) } });
+  });
+  for (let k = 0; k < ops.length; k += 400) await store.batch(ops.slice(k, k + 400));
+  await store.set(COL.meta, 'settings', { lastPacked: V.today() }, true); if (ST.settings) ST.settings.lastPacked = V.today();
+  const n = ops.filter(o => o.data.status).length;
+  ST.packed = { n, hidden: ops.length - n, at: now };
+  return n;
+}
 
 /* ---------- clean-up: keep KEEP_DAYS days ---------- */
 async function cleanup() {
@@ -1452,6 +1481,7 @@ async function start() {
   } catch (e) { $('status').innerHTML = box('bad', 'Could not read Firestore: ' + esc(nice(e))); return; }
   drawStatus(); drawReady(); if (RD.sel) openDay(RD.sel).then(() => { if (RD.list.some(o => o.stamp !== rdStamp())) syncDays(); });
   try { await autoExpire(); } catch (e) { console.error('auto-expire', e); }
+  try { await closePacked(); } catch (e) { console.error('close packed', e); }
   drawIssues();
   // live: new ship-short requests show up without refreshing
   let lastSig = '';
