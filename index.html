@@ -5,7 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f1420">
 <title>VH Shop Scan</title>
-<!-- VH Shop Scan Verify 1.0 — built from VHM Scan Verify 13.1 for VH Shop (own Firebase project, own storage prefix vhs_).
+<!-- 22 Nov 2026 (1.3): ⛔ ALREADY PACKED — an order scanned complete or shipped short (on any machine, checked in scan_log) is blocked;
+     packing it again needs the manager (upload page → 🔁 Pack again) or a supervisor PIN, with a reason. The approval is used up
+     when the order is complete again (same as VHM Scan Verify 2.3).
+     22 Nov 2026 (1.3): issues of an order now really close when it is scanned complete:
+     - "System is wrong?" issues stay open for the manager, but leave the staff Issues list once the order is complete;
+     - a close (or any issue change) that did not reach Firebase (Wi-Fi drop, page reloaded) is sent again every minute;
+     - if this machine could not read the order's older issues, they are closed online after the order is complete;
+     - a newer scan of the same wrong item no longer re-opens an issue another machine already closed.
+     13 Nov 2026 f: on page open, open issues older than 3 days that are already online are dropped from the phone (the manager
+     page closes old issues by itself; phones kept showing them). An order's own issues are still read when it is scanned.
+     13 Nov 2026 e: Data tab has a link to the Stock Count page (count.html).
+     13 Nov 2026 c: Ship short no longer waits for the manager or a supervisor PIN. Staff tick the missing item(s), choose why
+     and confirm — the order is packed at once and the manager page shows it as information (who, what, why). Old waiting requests
+     can still be answered on the manager page. Supervisor PIN is still used to close other issues (mistake scan / other).
+     13 Nov 2026 b: phones follow only the issues of the last 3 days (live), not every open issue (2,841 open holds were read on
+     every page open). An order being scanned also reads its own issues (any age), once. The manager page still sees all.
+     13 Nov 2026 (fewer Firestore reads): opening the page no longer downloads every issue of the last 14 days (it only sends
+     issues made offline), and opening the Issues tab no longer re-reads the open issues — the live listener already has them.
+     History (Done) and the ↻ button still read on purpose. Settings shows how many reads this page has used.
+     VH Shop Scan Verify 1.0 — built from VHM Scan Verify 13.1 for VH Shop (own Firebase project, own storage prefix vhs_).
      Catalog: read from Firestore (scan_catalog, compressed chunks, verified by fingerprint), uploaded only by the manager page upload.html.
      Removed: reconciliation workspace, barcode fixes, hand edits. Added: Hold, supervisor PIN approval, first-scan confirmation,
      cancelled/changed order warnings, one scan-log document per order.
@@ -91,7 +110,7 @@ section{display:none}section.on{display:block}
 .iss .b{font-size:17px;font-weight:700;margin-top:4px;word-break:break-word}
 .iss .e{margin-top:4px;font-size:14px;color:#fde68a}
 .iss .how{margin-top:6px;font-size:14px;color:#cbd5e1}.iss .disp{margin-top:6px;padding:6px 10px;border-radius:10px;background:#3b2f0b;color:#fde68a;font-weight:700}
-.iss.short,.iss.shortreq{border-left-color:#0ea5e9}.iss.shortreq .tag{color:#7dd3fc}.iss.short .tag{color:#7dd3fc}
+.iss.short,.iss.shortreq{border-left-color:#0ea5e9}.iss.repackreq,.iss.repackok{border-left-color:#a78bfa}.iss.repackreq .tag,.iss.repackok .tag{color:#c4b5fd}.iss.shortreq .tag{color:#7dd3fc}.iss.short .tag{color:#7dd3fc}
 .iss .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.iss .btns button{min-height:42px}
 #act .reasons{display:grid;gap:6px;margin-top:8px}#act .reasons button{text-align:left;padding:8px 12px}#act .reasons button.sel{background:var(--acc);border-color:var(--acc)}
 .iss .ready{margin-top:6px;padding:6px 10px;border-radius:10px;background:#14532d;color:#bbf7d0;font-weight:700}
@@ -197,6 +216,11 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
 
   <!-- ============ DATA ============ -->
   <section id="tab-data">
+    <div class="card">
+      <h2>Stock count · រាប់ស្តុក</h2>
+      <div class="mut">Count stock by scanning labels; export, print or save the size chart as a picture.</div>
+      <div class="row"><a href="count.html" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:10px;background:#2f6fed;color:#fff;font-weight:700;text-decoration:none">🔢 Open Stock count</a></div>
+    </div>
     <div class="card">
       <h2>Product catalog</h2>
       <div id="catinfo" class="mut"></div>
@@ -477,7 +501,7 @@ if (store) {
   store.auth.anon().catch(e => { authErr = e.code || e.message; $('dot').className = 'dot bad'; readyResolve(false); fbState(); });
 } else readyResolve(false);
 setTimeout(() => readyResolve(false), 8000);
-function fbState() { $('fbstate').textContent = !store ? 'Not connected — no Firebase project set (scanning works only with orders already saved on this phone).' : online ? 'Online storage connected (' + (store.projectId || 'test') + ')' : 'Not signed in to Firebase' + (authErr ? ': ' + authErr + ' — is Anonymous sign-in turned on?' : ''); }
+function fbState() { $('fbstate').textContent = !store ? 'Not connected — no Firebase project set (scanning works only with orders already saved on this phone).' : online ? 'Online storage connected (' + (store.projectId || 'test') + ') · ' + (store.reads || 0).toLocaleString('en-US') + ' reads since this page opened' : 'Not signed in to Firebase' + (authErr ? ': ' + authErr + ' — is Anonymous sign-in turned on?' : ''); }
 
 /* ---------- local state ---------- */
 let orders = LS.get('orders', {});     // orders opened on this device: {id:{d,fb,user,ship,items,st,rev,changedAt,fetchedAt}}
@@ -488,7 +512,11 @@ let logq = LS.get('logq', {});         // scan-session documents not yet saved o
   const cut = Date.now() - KEEP_DAYS * 864e5, cutIso = new Date(cut + V.TZ_MS).toISOString(), ocut = Date.now() - 3 * 864e5;
   Object.keys(orders).forEach(k => { if ((orders[k].fetchedAt || 0) < ocut) delete orders[k]; });
   log = log.filter(x => x.t >= cutIso).slice(-30000);
-  issues = issues.filter(i => i.status === 'open' || i.t >= cutIso);
+  // 13 Nov 2026 f: an open issue older than the 3 days phones follow, already saved online, is dropped here — the manager page
+  // may have closed it (auto-expiry) and this phone would never hear. Issues made offline (not synced) are kept and sent.
+  // An old order's own issues are read again when it is scanned (orderIssues).
+  const icut = new Date(Date.now() + V.TZ_MS - 3 * 864e5).toISOString().replace('Z', '');
+  issues = issues.filter(i => i.status === 'open' ? !(i.synced && String(i.t || '') < icut) : i.t >= cutIso);
   LS.set('orders', orders); LS.set('scanlog', log); LS.set('issues', issues);
 })();
 let cur = null;       // {id, scanned:[n per line], short:[n per line excused by an approved ship short]}
@@ -517,9 +545,10 @@ const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e)
 function showTab(n) {
   document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 'tab-' + n));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === n));
-  if (n === 'issues') syncIssues(issueFilter === 'done');
+  if (n === 'issues') { if (issueFilter === 'done') syncIssues(true); else renderIssues(); }      // open issues are live already: no extra read
   if (n === 'scan') focusScan();
   if (n === 'lists') renderLists();
+  fbState();
   if (n === 'log') renderLog();
   if (n === 'data') renderData();
   window.scrollTo(0, 0);
@@ -550,9 +579,9 @@ function render(expect) {
 let issueFilter = 'open';
 const openIssues = () => issues.filter(i => i.status === 'open');
 const nowKnown = is => is.type === 'wrong' && !is.label && pok.has(nz(is.code)) && pok.get(nz(is.code)).label;
-const ISS_TAG = { shortreq: '⏳ SHIP SHORT — WAITING FOR MANAGER', dup: '🔁 DUPLICATE', check: '⚠ CHECK', incomplete: '⏸ MISSING / ON HOLD', short: '📦 SHIPPED SHORT', quirk: '⚡ TECH QUIRK — MANAGER REVIEWS', allowed: '✓ MIXED · អីវ៉ាន់ចម្រុះ — MANAGER TOLD' };
-const ISS_HOW = { shortreq: 'The manager approves or rejects it on the manager page', wrong: 'Open the order and scan the right item until it is complete', dup: 'Take the extra item out and finish the order', check: 'Check the item by eye and finish the order', incomplete: 'Find the missing item and finish the order — or ask a supervisor (ship short)', short: 'The manager fixes this order in Vrich', quirk: 'Nothing to do — the manager checks it', allowed: 'Nothing to do — the manager allowed any colour/size of this code' };
-const RES_TXT = { rejected: 'ship short rejected', completed: 'order completed', short: 'shipped short', mistake: 'mistake scan', other: 'other', approved: 'item approved', logged: 'logged after the order was complete', catalog: 'manager: catalog problem', staff: 'manager: staff mistake', vrich: 'fixed in Vrich', quirk: 'counted — technical quirk', qok: 'manager: quirk confirmed', qstaff: 'manager: staff mistake' };
+const ISS_TAG = { repackno: '✗ PACK AGAIN REJECTED', repackreq: '⏳ PACK AGAIN — WAITING FOR MANAGER', repackok: '🔁 PACK AGAIN APPROVED', shortreq: '⏳ SHIP SHORT — WAITING FOR MANAGER', dup: '🔁 DUPLICATE', check: '⚠ CHECK', incomplete: '⏸ MISSING / ON HOLD', short: '📦 SHIPPED SHORT', quirk: '⚡ TECH QUIRK — MANAGER REVIEWS', allowed: '✓ MIXED · អីវ៉ាន់ចម្រុះ — MANAGER TOLD' };
+const ISS_HOW = { repackreq: 'The manager approves or rejects it on the manager page', repackok: 'Scan the order number and pack it again', shortreq: 'The manager approves or rejects it on the manager page', wrong: 'Open the order and scan the right item until it is complete', dup: 'Take the extra item out and finish the order', check: 'Check the item by eye and finish the order', incomplete: 'Find the missing item and finish the order — or ask a supervisor (ship short)', short: 'The manager fixes this order in Vrich', quirk: 'Nothing to do — the manager checks it', allowed: 'Nothing to do — the manager allowed any colour/size of this code' };
+const RES_TXT = { rejected: 'ship short rejected', completed: 'order completed', short: 'shipped short', mistake: 'mistake scan', other: 'other', approved: 'item approved', logged: 'logged after the order was complete', withdrawn: 'pack again withdrawn', expired: 'closed — too old', catalog: 'manager: catalog problem', staff: 'manager: staff mistake', vrich: 'fixed in Vrich', quirk: 'counted — technical quirk', qok: 'manager: quirk confirmed', qstaff: 'manager: staff mistake' };
 function issueCard(is) {
   const tag = is.type === 'wrong' ? (is.label ? '✗ WRONG ITEM' : '? NOT IN CATALOG') : (ISS_TAG[is.type] || is.type), cleared = is.status === 'cleared', k = nowKnown(is);
   return `<div class="iss ${is.type} ${cleared ? 'cleared' : ''}" data-id="${esc(is.id)}" data-order="${esc(is.order)}"><div class="h"><span class="tag">${tag}</span><b>#${esc(is.order)}</b>` +
@@ -562,14 +591,16 @@ function issueCard(is) {
     (!cleared && k ? `<div class="ready">✓ Now in the catalog (${esc(k)}) — rescan order #${esc(is.order)}</div>` : '') +
     (is.disputed ? `<div class="disp">⚖ ${esc(is.disputeBy || '')} says the system is wrong — the manager will check</div>` : '') +
     (cleared ? `<div class="mut" style="margin-top:6px">✓ closed ${esc((is.clearedAt || '').slice(5, 16).replace('T', ' '))} · ${esc(RES_TXT[is.resolution] || '')} · ${esc(is.clearedBy || '—')}${is.note ? ' · “' + esc(is.note) + '”' : ''}</div>`
-             : `<div class="how">To close: ${esc(ISS_HOW[is.type] || 'finish the order')}</div>` + (is.type === 'short' || is.type === 'shortreq' || is.type === 'quirk' || is.type === 'allowed' ? '' :
+             : `<div class="how">To close: ${esc(ISS_HOW[is.type] || 'finish the order')}</div>` + (['short', 'shortreq', 'quirk', 'allowed', 'repackreq'].includes(is.type) ? '' : is.type === 'repackok' ? '<div class="btns"><button class="opn">📦 Open order</button></div>' :
                `<div class="btns"><button class="opn">📦 Open order</button>${(SETTINGS.sup || []).length || is.type === 'incomplete' ? '<button class="sup">🔑 Supervisor / manager</button>' : ''}${is.type === 'wrong' && !is.disputed ? '<button class="dsp">System is wrong?</button>' : ''}</div>`)) + `</div>`;
 }
 /* Issues tab: ONE card per order that needs something (not every scan). Hidden: things only the manager reviews
  * (⚡ quirks, ✓ allowed by code) and an approved ship short once the order was packed. */
 const isRejected = i => i.type === 'incomplete' && (i.rejectedAt || /rejected/i.test(i.label || ''));
-const staffSees = i => i.type !== 'quirk' && i.type !== 'allowed' && !(i.type === 'short' && i.packedAt);
+const staffSees = i => i.type !== 'quirk' && i.type !== 'allowed' && !(i.type === 'short' && i.packedAt) && !(i.disputed && i.doneAt);
 const ORD_STATE = [   // most important first: [test, css, tag, headline]
+  [i => i.type === 'repackreq', 'repackreq', '⏳ PACK AGAIN — WAITING FOR MANAGER', 'Order was already packed — put it aside until the manager answers'],
+  [i => i.type === 'repackok', 'repackok', '🔁 PACK AGAIN APPROVED', 'Scan the order number and pack it again'],
   [i => i.type === 'shortreq' && i.to === 'sup', 'incomplete', '⏳ WAITING FOR SUPERVISOR', 'Ship short asked — put the order aside until the supervisor answers'],
   [i => i.type === 'shortreq', 'incomplete', '⏳ WAITING FOR MANAGER', 'Ship short asked — put the order aside until the manager answers'],
   [isRejected, 'wrong', '✗ SHIP SHORT REJECTED', 'Find the missing item and finish the order'],
@@ -580,7 +611,7 @@ const ORD_STATE = [   // most important first: [test, css, tag, headline]
   [i => i.type === 'check', 'check', '⚠ CHECK', 'Check the item by eye and finish the order'],
   [i => i.type === 'short', 'done', '📦 SHIP SHORT APPROVED', 'Pack and ship without the missing item — open the order and scan the rest'],
 ];
-const ICON = { shortreq: '⏳', incomplete: '⏸', wrong: '✗', dup: '🔁', check: '⚠', short: '📦' };
+const ICON = { repackreq: '⏳', repackok: '🔁', shortreq: '⏳', incomplete: '⏸', wrong: '✗', dup: '🔁', check: '⚠', short: '📦' };
 function orderGroups(list) {
   const g = new Map(); list.forEach(i => { (g.get(i.order) || g.set(i.order, []).get(i.order)).push(i); });
   return [...g].map(([order, L]) => { L.sort((a, b) => b.t.localeCompare(a.t)); const k = ORD_STATE.findIndex(([f]) => L.some(f)); return { order, L, k: k < 0 ? 99 : k, main: k < 0 ? L[0] : L.find(ORD_STATE[k][0]), last: L[0].t }; })
@@ -591,7 +622,7 @@ function orderCard(g, cleared) {
   const st = ORD_STATE[g.k] || [null, 'check', g.main.type, ''], m = g.main, o = orders[g.order] || {};
   const miss = (L => { const x = L.find(i => i.type === 'shortreq' || i.type === 'short') || L.find(i => i.expected); return x ? (x.type === 'shortreq' || x.type === 'short' ? 'Missing: ' + String(x.label || '').replace(/^(Missing|Shipped without): /, '') : x.expected) : ''; })(g.L);
   const mnote = (g.L.find(i => i.mnote) || {}).mnote, staff = [...new Set(g.L.map(i => i.staff).filter(Boolean))].join(', ');
-  const known = g.L.find(nowKnown), canSup = !cleared && m.type !== 'shortreq' && m.type !== 'short' && ((SETTINGS.sup || []).length || g.L.some(i => i.type === 'incomplete'));
+  const known = g.L.find(nowKnown), canSup = !cleared && m.type !== 'shortreq' && m.type !== 'short' && m.type !== 'repackreq' && m.type !== 'repackok' && ((SETTINGS.sup || []).length || g.L.some(i => i.type === 'incomplete'));
   const lines = g.L.map(i => `<div class="pl"><span>${ICON[i.type] || '•'} ${esc(i.type === 'incomplete' || i.type === 'shortreq' || i.type === 'short' ? (i.label || '') : ((i.label || '') + ' ' + (i.label ? '(' + i.code + ')' : i.code)).trim())}${i.count > 1 ? ' ×' + i.count : ''}</span><span class="mut">${esc(i.t.slice(11, 16))}${i.disputed ? ' · ⚖ sent to manager' : ''}</span>${!cleared && i.type === 'wrong' && !i.disputed ? `<button class="dsp" data-did="${esc(i.id)}">System is wrong?</button>` : ''}</div>`).join('');
   return `<div class="iss ${st[1]} ${cleared ? 'cleared' : ''}" data-id="${esc(m.id)}" data-order="${esc(g.order)}"><div class="h"><span class="tag">${esc(st[2])}</span><b>#${esc(g.order)}</b><span class="mut">${esc(o.fb || m.fb || '')}</span></div>` +
     `<div class="mut">${esc(V.when(g.last).slice(5))} · ${esc(staff || '—')}</div>` +
@@ -615,14 +646,21 @@ function renderOrderIssues() {
   $('orderissuelist').innerHTML = mine.map(issueCard).join('');
 }
 function saveIssue(is) {
-  LS.set('issues', issues);
-  if (store && online) { const { synced, ...data } = is; store.set(COL.issues, is.id, data).then(() => { is.synced = true; LS.set('issues', issues); }).catch(() => {}); }
+  if (is.synced === undefined) is._new = true;      // made offline before 22 Nov: never confirmed online = new
+  is.synced = false; const ver = is._v = (is._v || 0) + 1; LS.set('issues', issues);     // waiting for Firebase (resendIssues retries)
+  if (!store || !online) return;
+  const { synced, _v, _asked, _new, _fail, ...data } = is;
+  // merge, and never write "open" over an issue that already exists online: a late resend must not re-open what the
+  // manager or another machine has closed meanwhile (only a brand-new issue is written as open)
+  if (data.status === 'open' && !_new) delete data.status;
+  store.set(COL.issues, is.id, data, true).then(() => { delete is._fail; if (is._v === ver) { is.synced = true; delete is._new; LS.set('issues', issues); } }).catch(() => { is._fail = (is._fail || 0) + 1; });
 }
+const pendingIss = i => i.synced === false;      // a change made on this machine that Firebase has not confirmed yet: cloud copies must not overwrite it
 function addIssue(type, code, label, reason, expected) {
   const order = cur ? cur.id : '';
-  const ex = issues.find(i => i.status === 'open' && i.order === order && i.code === code && i.type === type);
+  const ex = issues.find(i => i.status === 'open' && i.order === order && i.code === code && i.type === type && String(i.t) >= ISS_CUT);
   if (ex) { ex.count = (ex.count || 1) + 1; ex.t = localNow(); saveIssue(ex); renderIssues(); return ex; }
-  const is = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: localNow(), d: V.today(), staff: staffName(), order, type, code, label: label || '', reason: reason || '', expected: expected || '', status: 'open', count: 1 };
+  const is = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: localNow(), d: V.today(), staff: staffName(), order, type, code, label: label || '', reason: reason || '', expected: expected || '', status: 'open', count: 1, _new: true };
   if (cur && type !== 'short' && type !== 'quirk' && type !== 'allowed' && orderDone()) Object.assign(is, { status: 'cleared', clearedAt: localNow(), clearedBy: 'auto', resolution: 'logged' });   // extra scans after completion: kept as a record, nothing to fix
   issues.push(is); saveIssue(is); renderIssues(); return is;
 }
@@ -632,7 +670,32 @@ function clearIssue(id, note, by, resolution) {
   saveIssue(is); renderIssues();
 }
 // staff cannot clear: an issue closes when its order is completed, or with a supervisor PIN and a reason
-function closeOrderIssues(order, note, by, resolution) { openIssues().filter(i => i.order === order && i.type !== 'short' && i.type !== 'shortreq' && i.type !== 'quirk' && i.type !== 'allowed' && !i.disputed).forEach(i => clearIssue(i.id, note, by, resolution)); }
+const closable = i => !['short', 'shortreq', 'quirk', 'allowed', 'repackreq'].includes(i.type) && !i.disputed;
+function closeOrderIssues(order, note, by, resolution) {
+  openIssues().filter(i => i.order === order && closable(i)).forEach(i => clearIssue(i.id, note, by, resolution));
+  if (resolution !== 'completed') return;
+  // "System is wrong?" stays open for the manager, but staff stop seeing it once the order is complete
+  const now = localNow(); openIssues().filter(i => i.order === order && i.disputed && !i.doneAt).forEach(i => { i.doneAt = now; saveIssue(i); });
+  // this machine never read the order's older issues (offline / read failed): close them online later
+  if (!ORD_OK.has(order)) { sweepQ[order] = { by, t: now }; LS.set('sweep', sweepQ); sweepOrders(); }
+  renderIssues();
+}
+let sweepQ = LS.get('sweep', {}), sweeping = false;
+async function sweepOrders() {
+  if (!store || !online || sweeping) return; sweeping = true;
+  try {
+    for (const oid of Object.keys(sweepQ)) {
+      const q = sweepQ[oid], docs = await store.query(COL.issues, [['order', '==', oid], ['status', '==', 'open']]);
+      for (const { id, data: v } of docs) {
+        if (String(v.t || '') > q.t) continue;                          // made after the order was complete: not ours to close
+        const loc = issues.find(x => x.id === id);
+        if (closable(v)) { const c = { status: 'cleared', clearedAt: q.t, clearedBy: q.by, resolution: 'completed', note: '' }; await store.set(COL.issues, id, c, true); if (loc) Object.assign(loc, c, { synced: true }); }
+        else if (v.disputed && !v.doneAt) { await store.set(COL.issues, id, { doneAt: q.t }, true); if (loc) Object.assign(loc, { doneAt: q.t, synced: true }); }
+      }
+      delete sweepQ[oid]; LS.set('sweep', sweepQ); LS.set('issues', issues);
+    }
+  } catch (e) { console.warn('issue sweep', e); } finally { sweeping = false; renderIssues(); }
+}
 function onIssueClick(e) {
   const card = e.target.closest('.iss'); if (!card) return; const d = e.target.closest('.dsp'), is = issues.find(i => i.id === (d && d.dataset.did ? d.dataset.did : card.dataset.id)); if (!is) return;
   if (e.target.closest('.opn')) { showTab('scan'); handleScan(is.order); return; }
@@ -643,14 +706,29 @@ $('issuelist').onclick = onIssueClick; $('orderissuelist').onclick = onIssueClic
 $('f-open').onclick = () => { issueFilter = 'open'; $('f-open').classList.add('on'); $('f-done').classList.remove('on'); renderIssues(); };
 $('f-done').onclick = () => { issueFilter = 'done'; $('f-done').classList.add('on'); $('f-open').classList.remove('on'); renderIssues(); syncIssues(true); };
 $('issrefresh').onclick = () => syncIssues(issueFilter === 'done');
+// phones follow the issues of the last ISS_DAYS days only (VH Shop had 2,841 open holds: reading them all on every page open
+// was most of the Firestore bill). Format of i.t: local ISO without 'Z'.
+const ISS_DAYS = 3, ISS_CUT = new Date(Date.now() + V.TZ_MS - ISS_DAYS * 864e5).toISOString().replace('Z', '');
+// an order scanned now may have older issues (a hold from last week): read just that order's issues, once per order
+const ORD_ISS = new Set(), ORD_OK = new Set();
+async function orderIssues(oid) {
+  if (!store || !online || !oid || ORD_ISS.has(oid)) return; ORD_ISS.add(oid);
+  try {
+    const docs = await store.query(COL.issues, [['order', '==', oid]]); ORD_OK.add(oid); if (!docs.length) return;
+    docs.forEach(({ id, data: v }) => { const i = issues.findIndex(x => x.id === id); if (i < 0) issues.push({ ...v, id, synced: true }); else if (!pendingIss(issues[i]) && (issues[i].status !== 'cleared' || v.status === 'cleared')) issues[i] = { ...issues[i], ...v, id, synced: true }; });
+    LS.set('issues', issues); renderIssues(); render();
+  } catch (e) { ORD_ISS.delete(oid); }
+}
+// issues created while offline go up now — no reading needed
+function resendIssues() { if (!store || !online) return; issues.forEach(i => { if ((pendingIss(i) || (i.status === 'open' && !i.synced)) && (i._fail || 0) < 10) saveIssue(i); }); sweepOrders(); }
 async function syncIssues(full) {
   if (!store || !online) return;
   try {
-    const q = full ? [['t', '>=', new Date(Date.now() + V.TZ_MS - 14 * 864e5).toISOString().replace('Z', '')]] : [['status', '==', 'open']];
+    const q = full ? [['t', '>=', new Date(Date.now() + V.TZ_MS - 14 * 864e5).toISOString().replace('Z', '')]] : [['t', '>=', ISS_CUT]];
     const docs = await store.query(COL.issues, q), cloud = new Map(docs.map(d => [d.id, d.data]));
-    cloud.forEach((v, id) => { const i = issues.findIndex(x => x.id === id); if (i < 0) issues.push({ ...v, id, synced: true }); else if (issues[i].status !== 'cleared' || v.status === 'cleared') issues[i] = { ...issues[i], ...v, id, synced: true }; });
-    if (!full) issues.forEach(i => { if (i.status === 'open' && i.synced && !cloud.has(i.id) && Date.now() - tms(i.t) > 45000) { i.status = 'cleared'; i.clearedAt = i.clearedAt || localNow(); i.clearedBy = i.clearedBy || '(other device)'; } });
-    issues.forEach(i => { if (i.status === 'open' && !i.synced) saveIssue(i); });    // send issues created while offline
+    cloud.forEach((v, id) => { const i = issues.findIndex(x => x.id === id); if (i < 0) issues.push({ ...v, id, synced: true }); else if (!pendingIss(issues[i]) && (issues[i].status !== 'cleared' || v.status === 'cleared')) issues[i] = { ...issues[i], ...v, id, synced: true }; });
+    if (!full) issues.forEach(i => { if (i.status === 'open' && i.synced && String(i.t) >= ISS_CUT && !cloud.has(i.id) && Date.now() - tms(i.t) > 45000) { i.status = 'cleared'; i.clearedAt = i.clearedAt || localNow(); i.clearedBy = i.clearedBy || '(other device)'; } });
+    resendIssues();    // send changes made while offline
     LS.set('issues', issues); renderIssues();
   } catch (e) { console.error('issues sync', e); }
 }
@@ -670,7 +748,7 @@ async function flushLog() {
   catch (e) { console.warn('log flush', e); } finally { flushing = false; renderQ(); }
 }
 function renderQ() { const n = Object.keys(logq).length - (sess && logq[sess.id] ? 1 : 0); $('qinfo').textContent = n > 0 ? n + ' order log(s) waiting to be saved online' : 'All order logs saved online ✓'; }
-setInterval(() => { if (sess && sess.scans.length && Date.now() - tms(sess.end) > 180000) { logq[sess.id] = sess; } flushLog(); }, 60000);
+setInterval(() => { if (sess && sess.scans.length && Date.now() - tms(sess.end) > 180000) { logq[sess.id] = sess; } flushLog(); resendIssues(); }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && sess && sess.scans.length) { const s = sess; logq[s.id] = s; LS.set('logq', logq); if (store && online) store.set(COL.log, s.id, s).catch(() => {}); } });
 function renderLog() {
   const today = localNow().slice(0, 10), L = log.filter(x => x.t.slice(0, 10) === today), per = {};
@@ -753,17 +831,90 @@ async function findOrder(code) {
 /* ---------- leaving / holding an order ---------- */
 let pendingNext = null;
 const isUnfinished = () => { if (!cur || !orders[cur.id]) return false; return orders[cur.id].items.some((it, i) => G(i) < it.qty); };
-function startOrder(oid) {
+/* ---------- ⛔ an order that was already packed cannot be scanned again without approval (22 Nov 2026, from VHM 2.3) ----------
+ * "packed" = a scan session that ended ORDER COMPLETE or shipped short, on this machine or any other (scan_log).
+ * Approval = an open 'repackok' issue for the order (manager on the upload page, or a supervisor PIN on a machine).
+ * The approval is used up when the order is scanned complete again. */
+let DONE = LS.get('done', {});         // orders packed on this machine: {id:{t,staff,how}}
+(function () { const cut = new Date(Date.now() + V.TZ_MS - KEEP_DAYS * 864e5).toISOString(); Object.keys(DONE).forEach(k => { if ((DONE[k].t || '') < cut) delete DONE[k]; }); LS.set('done', DONE); })();
+const repackPass = {};                 // approvals given on this machine in this session (works offline)
+function markDone(oid, how) { DONE[oid] = { t: localNow(), staff: staffName(), how }; LS.set('done', DONE); }
+const repackOk = oid => repackPass[oid] || openIssues().find(i => i.order === oid && i.type === 'repackok');
+async function priorPack(oid) {
+  let best = DONE[oid] ? { t: DONE[oid].t, staff: DONE[oid].staff, how: DONE[oid].how, where: 'this machine' } : null;
+  if (!store || !online) return best || { unchecked: true };
+  try {
+    const L = await store.query(COL.log, [['order', '==', oid]]);           // 1 read when the order was never scanned
+    L.map(x => x.data).filter(x => x.result === 'complete' || x.result === 'short').forEach(x => {
+      if (!best || (x.end || '') > best.t) best = { t: x.end || x.start || '', staff: x.staff || '?', how: x.result, where: x.id && x.id.indexOf('_' + DEVICE + '_') > 0 ? 'this machine' : 'another machine' };
+    });
+  } catch (e) { return best || { unchecked: true, err: e.code || e.message }; }
+  return best;
+}
+let starting = '';
+function showRepack(oid, p) {
+  cur = null; render();
+  const o = orders[oid] || {}, how = p.how === 'short' ? 'shipped short' : 'scanned complete';
+  const head = '⛔ ALREADY PACKED · Order នេះវេចខ្ចប់រួចហើយ';
+  let info = `#${esc(oid)} was ${how} by <b>${esc(p.staff || '?')}</b> · ${esc(V.when(p.t))} (${esc(p.where || '')}).<br><b>Do not pack it again.</b> កុំវេចខ្ចប់ម្តងទៀត`;
+  if (o.changedAt && o.changedAt > (p.t || '')) info += `<br>⚠ The order was changed in Vrich after it was packed (${esc(V.when(o.changedAt))}).`;
+  sBad(); buzz([200, 80, 200, 80, 200]);
+  const pend = openIssues().find(i => i.order === oid && i.type === 'repackreq');
+  if (pend) { setStatus('stop', head, info + `<br>⏳ Already sent to the manager ${esc(V.when(pend.t))} — put it aside. This machine shows the answer.`); return; }
+  setStatus('stop', head, info + '<br>To pack it again you need the manager or a supervisor to approve.');
+  const hasSup = (SETTINGS.sup || []).length > 0;
+  ACT = { kind: 'repack', order: oid, prior: p, reason: 'ask' };
+  $('act').className = 'on';
+  $('act').innerHTML = `<h3>🔁 Pack #${esc(oid)} again? · វេចខ្ចប់ម្តងទៀត?</h3><div class="mut">Only if there is a real reason (customer changed the order, box damaged, items taken out). Otherwise tap Cancel and put the items back.</div>` +
+    `<div class="reasons"><button data-r="ask" class="sel">📨 Ask the manager (no PIN)</button>${hasSup ? '<button data-r="sup">🔑 Supervisor PIN now</button>' : ''}</div>` +
+    `<input id="supWhy" placeholder="Why pack again? (required)" style="font-size:16px;letter-spacing:0;text-align:left"><input id="supPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Supervisor PIN" style="display:none">` +
+    `<div class="two"><button class="yes" id="rpOk">Send</button><button id="rpCancel">Cancel</button></div><div id="supMsg" class="mut" style="margin-top:6px"></div>`;
+  $('act').querySelectorAll('.reasons button').forEach(b => b.onclick = () => { ACT.reason = b.dataset.r; $('act').querySelectorAll('.reasons button').forEach(x => x.classList.toggle('sel', x === b)); $('supPin').style.display = ACT.reason === 'sup' ? '' : 'none'; $('rpOk').textContent = ACT.reason === 'sup' ? 'Approve' : 'Send'; });
+  $('rpCancel').onclick = () => { hideAct(); setStatus('', 'Ready · រង់ចាំស្កេន Order', `#${esc(oid)} not packed again. Put the items back.`); focusScan(); };
+  $('rpOk').onclick = repackConfirm; $('supPin').addEventListener('keydown', e => { if (e.key === 'Enter') repackConfirm(); });
+  $('supWhy').focus();
+}
+function repackConfirm() {
+  if (!ACT || ACT.kind !== 'repack') return;
+  const a = ACT, msg = $('supMsg'), why = $('supWhy').value.trim(), o = orders[a.order] || {};
+  if (!why) { msg.textContent = 'Write why it must be packed again'; $('supWhy').focus(); return; }
+  const prev = `Packed before: ${a.prior.how === 'short' ? 'shipped short' : 'complete'} by ${a.prior.staff || '?'} · ${V.when(a.prior.t)} (${a.prior.where || ''})`;
+  let sup = null;
+  if (a.reason === 'sup') { sup = checkPin($('supPin').value, msg); if (!sup) return; }
+  hideAct();
+  const keepCur = cur; cur = { id: a.order, scanned: [] };
+  if (sup) {
+    const is = addIssue('repackok', '(pack again)', 'Pack again approved', 'Approved by ' + sup.name + ' (asked by ' + staffName() + ') — ' + why, prev);
+    Object.assign(is, { fb: o.fb || o.user || '', approvedBy: sup.name, approvedAt: localNow(), mnote: why }); saveIssue(is);
+    if (store && online) store.set(COL.ovr, a.order + '_repack_' + Date.now().toString(36), { t: localNow(), d: V.today(), order: a.order, kind: 'repack', staff: staffName(), sup: sup.name, why, prev }).catch(() => {});
+    cur = keepCur; repackPass[a.order] = is;
+    startOrder(a.order); return;
+  }
+  const r = addIssue('repackreq', '(pack again?)', 'Pack again: #' + a.order, 'Asked by ' + staffName() + ' — ' + why, prev);
+  r.fb = o.fb || o.user || ''; saveIssue(r);
+  cur = keepCur;
+  setStatus('warn', '⏳ SENT TO MANAGER · #' + a.order, 'Request to pack the order again. Put it aside — this machine will show the answer. Scan the next order.'); sWarn();
+  focusScan();
+}
+async function startOrder(oid) {
   pendingNext = null; hideAct();
   const o = orders[oid];
-  if (o.st === 'c') { cur = null; render(); setStatus('stop', '⛔ ORDER CANCELLED · Order ត្រូវបានលុប', `#${esc(oid)} was cancelled in Vrich — <b>do not pack</b>. Put the items back.`); sBad(); buzz([200, 80, 200]); return; }
+  if (o.st === 'c') { orderIssues(oid); cur = null; render(); setStatus('stop', '⛔ ORDER CANCELLED · Order ត្រូវបានលុប', `#${esc(oid)} was cancelled in Vrich — <b>do not pack</b>. Put the items back.`); sBad(); buzz([200, 80, 200]); return; }
+  if (cur) { sessEnd('switched'); cur = null; render(); }
+  starting = oid; setStatus('', 'Checking order #' + oid + '…', 'ពិនិត្យ Order…');
+  let prior = null;
+  try { const r = await Promise.all([orderIssues(oid), repackPass[oid] ? null : priorPack(oid)]); prior = r[1]; } finally { starting = ''; }
+  const ok = repackOk(oid);
+  if (!ok && prior && !prior.unchecked) { showRepack(oid, prior); return; }
   const before = log.filter(x => x.order === oid && (x.r === 'ok' || x.r === 'ovr' || x.r === 'loose' || x.r === 'quirk'));
   sessStart(oid); cur = { id: oid, scanned: o.items.map(() => 0), short: o.items.map(() => 0) };
   const shOk = openIssues().find(i => i.order === oid && i.type === 'short' && Array.isArray(i.miss));
   if (shOk) applyMiss(o, shOk.miss);
   render();
-  if (o.changedAt && before.some(x => x.t < o.changedAt)) { setStatus('warn', '⚠ ORDER CHANGED · Order បានកែប្រែ', `#${esc(oid)} was changed in Vrich after it was scanned (${esc(V.when(o.changedAt))}). Re-check every item against this list.`); sWarn(); buzz([60, 40, 60, 40, 60]); }
-  else if (before.length) { setStatus('warn', '⚠ ORDER ALREADY SCANNED BEFORE · Order នេះធ្លាប់ស្កេនរួច', `#${esc(oid)} had ${before.length} item(s) scanned earlier (this device) — possible double packing. Re-scan the items to continue.`); sWarn(); buzz([60, 40, 60]); }
+  if (ok) { setStatus('warn', '🔁 PACK AGAIN — APPROVED · #' + oid, 'Approved by <b>' + esc(ok.approvedBy || ok.sup || '') + '</b>' + (ok.mnote ? ' · ' + esc(ok.mnote) : '') + '<br>Scan every item again.'); sWarn(); buzz([60, 40, 60]); }
+  else if (prior && prior.unchecked) { setStatus('warn', '⚠ Could not check the other machines', `This machine is offline, so it cannot see if #${esc(oid)} was already packed on another machine. Check the order is not packed already.`); sWarn(); buzz([60, 40, 60]); }
+  else if (o.changedAt && before.some(x => x.t < o.changedAt)) { setStatus('warn', '⚠ ORDER CHANGED · Order បានកែប្រែ', `#${esc(oid)} was changed in Vrich after it was scanned (${esc(V.when(o.changedAt))}). Re-check every item against this list.`); sWarn(); buzz([60, 40, 60, 40, 60]); }
+  else if (before.length) { setStatus('warn', '⏸ UNFINISHED ORDER · Order មិនទាន់ចប់', `#${esc(oid)} was started earlier but not finished (${before.length} item(s) scanned). Scan every item again from the start.`); sWarn(); buzz([60, 40, 60]); }
   else { setStatus('', `Order #${oid}`, `${esc(o.fb || o.user)} · ${o.items.reduce((a, i) => a + i.qty, 0)} item(s) — scan each item`); sOk(); buzz(25); }
   const sh = openIssues().find(i => i.order === oid && i.type === 'short'), rq = openIssues().find(i => i.order === oid && i.type === 'shortreq');
   if (sh) setStatus('done', '📦 SHIP SHORT APPROVED · #' + oid, 'Pack and ship without: <b>' + esc((sh.label || '').replace(/^(Missing|Shipped without): /, '')) + '</b> · ' + esc(sh.reason || '') + (orderDone() ? '<br>Nothing else to scan — tap Next.' : '<br>Scan the items that are here — the order completes by itself.'));
@@ -891,15 +1042,14 @@ async function showResolve(order, issueId) {
   if (canShort && !orders[order]) await fetchOrder(order);
   const reasons = [];
   const hasSup = (SETTINGS.sup || []).length > 0;
-  if (canShort) reasons.push(['ask', '📨 Ask the manager to approve ship short (no PIN)']);
-  if (canShort && hasSup) reasons.push(['tosup', '👤 Send to the supervisor (no PIN)']);
+  if (canShort) reasons.push(['self', '📦 Ship short — send without the missing item(s) · ផ្ញើដោយខ្វះទំនិញ']);
   if (is && hasSup) { reasons.push(['mistake', '↩ Mistake scan — nothing is wrong with the order']); reasons.push(['other', '✎ Other (write why)']); }
   if (!reasons.length) return;
   const lines = canShort ? missLines(order) : [];
   ACT = { kind: 'resolve', order, issueId, reason: reasons.length === 1 ? reasons[0][0] : '', pick: {}, codes: {}, lines, sreason: '' };
-  const isShort = r => r === 'ask' || r === 'tosup' || r === 'short';
+  const isShort = r => r === 'ask' || r === 'tosup' || r === 'short' || r === 'self';
   $('act').className = 'on';
-  $('act').innerHTML = `<h3>🔑 Supervisor / manager · order #${esc(order)}</h3>` + (is ? `<div class="mut">${esc((is.label || is.code) + ' — ' + is.reason)}</div>` : '') +
+  $('act').innerHTML = `<h3>${canShort && !is ? '📦 Ship short · ផ្ញើដោយខ្វះ' : '🔑 Supervisor / manager'} · order #${esc(order)}</h3>` + (is ? `<div class="mut">${esc((is.label || is.code) + ' — ' + is.reason)}</div>` : '') +
     `<div class="reasons">${reasons.map(([k, l]) => `<button data-r="${k}" class="${ACT.reason === k ? 'sel' : ''}">${esc(l)}</button>`).join('')}</div>` +
     (canShort ? `<div id="missbox" style="${isShort(ACT.reason) ? '' : 'display:none'}"><div style="margin-top:10px;font-weight:700">Why? · មូលហេតុ <span class="mut" style="font-weight:400">(choose one)</span></div>` +
       `<div class="reasons" id="sreasons">${SHORT_WHY.map(([k, l]) => `<button data-s="${k}">${esc(l)}</button>`).join('')}</div>` +
@@ -907,9 +1057,9 @@ async function showResolve(order, issueId) {
       (!lines.length ? `<input id="missFree" autocomplete="off" placeholder="Type the code of the missing item" style="font-size:16px;letter-spacing:0;text-align:left">` : '') +
       (lines.length ? `<div class="lines" id="misslines">${lines.map(x => `<button data-i="${x.i}"><b>${esc(x.it.code)}</b> ${esc(itemLabel(x.it))} <span class="mut" data-c="${x.i}"></span>${x.left > 1 ? ` <select data-n="${x.i}" style="min-height:30px;padding:0 6px;margin-left:6px">${Array.from({ length: x.left }, (_, k) => `<option value="${k + 1}" ${k + 1 === x.left ? 'selected' : ''}>×${k + 1}</option>`).join('')}</select>` : ''}</button>`).join('')}</div>` : '') +
       `<div id="missMsg" class="mut" style="margin-top:4px"></div></div>` : '') +
-    `<input id="supWhy" placeholder="${canShort ? 'Note (optional)' : 'Note (required for Other)'}" style="font-size:16px;letter-spacing:0;text-align:left"><input id="supPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Supervisor PIN" style="${ACT.reason === 'ask' || ACT.reason === 'tosup' ? 'display:none' : ''}">` +
+    `<input id="supWhy" placeholder="${canShort ? 'Note (optional)' : 'Note (required for Other)'}" style="font-size:16px;letter-spacing:0;text-align:left"><input id="supPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Supervisor PIN" style="${noPin(ACT.reason) ? 'display:none' : ''}">` +
     `<div class="two"><button class="yes" id="resOk">Confirm</button><button id="resCancel">Cancel</button></div><div id="supMsg" class="mut" style="margin-top:6px"></div>`;
-  $('act').querySelectorAll('.reasons button').forEach(b => b.onclick = () => { ACT.reason = b.dataset.r; $('act').querySelectorAll('.reasons button').forEach(x => x.classList.toggle('sel', x === b)); $('supPin').style.display = ACT.reason === 'ask' || ACT.reason === 'tosup' ? 'none' : ''; if ($('missbox')) $('missbox').style.display = isShort(ACT.reason) ? '' : 'none'; });
+  $('act').querySelectorAll('.reasons button').forEach(b => b.onclick = () => { ACT.reason = b.dataset.r; $('act').querySelectorAll('.reasons button').forEach(x => x.classList.toggle('sel', x === b)); $('supPin').style.display = noPin(ACT.reason) ? 'none' : ''; if ($('missbox')) $('missbox').style.display = isShort(ACT.reason) ? '' : 'none'; });
   $('act').querySelectorAll('#sreasons button').forEach(b => b.onclick = () => { ACT.sreason = b.dataset.s; $('act').querySelectorAll('#sreasons button').forEach(x => x.classList.toggle('sel', x === b)); });
   // a line is chosen only by scanning / typing its code; tapping a chosen line un-chooses it
   // the missing item cannot be scanned (it is not here): staff tap its line
@@ -939,28 +1089,30 @@ function resolveOk() {
   }
   const swhy = M ? shortWhyTxt(M.sreason) + (why ? ' — ' + why : '') : why;
   if (a.reason === 'ask' || a.reason === 'tosup') { askManager(a, swhy, M, a.reason === 'tosup' ? 'sup' : 'mgr'); return; }
-  const sup = checkPin($('supPin').value, msg); if (!sup) return;
+  const self = a.reason === 'self', sup = self ? { name: staffName() } : checkPin($('supPin').value, msg); if (!sup) return;
+  const by = self ? 'Shipped short by ' + sup.name : 'Approved by ' + sup.name;
   hideAct();
-  if (a.reason !== 'short') { clearIssue(a.issueId, why, sup.name, a.reason); setStatus('', '✓ Issue closed by ' + sup.name, esc(RES_TXT[a.reason] || '') + (why ? ' · ' + esc(why) : '')); focusScan(); return; }
+  if (a.reason !== 'short' && a.reason !== 'self') { clearIssue(a.issueId, why, sup.name, a.reason); setStatus('', '✓ Issue closed by ' + sup.name, esc(RES_TXT[a.reason] || '') + (why ? ' · ' + esc(why) : '')); focusScan(); return; }
   // ship short with a supervisor PIN: the ticked items are excused, everything else must still be scanned
   const here = cur && cur.id === a.order, oo = orders[a.order] || {};
   const keepCur = cur; cur = here ? cur : { id: a.order, scanned: [] };
-  const sIs = addIssue('short', '(ship short)', 'Shipped without: ' + M.text, 'Approved by ' + sup.name + ' (supervisor PIN) — ' + swhy, '');
-  Object.assign(sIs, { fb: oo.fb || oo.user || '', miss: M.miss, snote: swhy, sreason: M.sreason, via: 'pin', sup: sup.name, approvedAt: localNow() }); saveIssue(sIs);
+  const sIs = addIssue('short', '(ship short)', 'Shipped without: ' + M.text, by + (self ? '' : ' (supervisor PIN)') + ' — ' + swhy, '');
+  Object.assign(sIs, { fb: oo.fb || oo.user || '', miss: M.miss, snote: swhy, sreason: M.sreason, via: self ? 'staff' : 'pin', sup: self ? '' : sup.name, approvedAt: localNow() }); saveIssue(sIs);
   cur = keepCur;
   if (here) {
-    applyMiss(oo, M.miss); record('short', '(ship short)', { sup: sup.name }); render();
-    if (orderDone()) { finishOrder(); setStatus('done', '📦 SHIP SHORT ✓ · ORDER COMPLETE · #' + a.order, 'Approved by ' + esc(sup.name) + '. Pack and ship without: <b>' + esc(M.text) + '</b><br>The manager will fix the order in Vrich.' + scannedTotal(oo)); sDone(); }
-    else { setStatus('warn', '📦 SHIP SHORT ✓ · #' + a.order, 'Approved by ' + esc(sup.name) + '. Leave out: <b>' + esc(M.text) + '</b><br>Now scan the other items · ស្កេនទំនិញផ្សេងទៀត<br>' + expectedText(oo)); sOk(); render(true); }
+    applyMiss(oo, M.miss); record('short', '(ship short)', self ? {} : { sup: sup.name }); render();
+    if (orderDone()) { finishOrder(); setStatus('done', '📦 SHIP SHORT ✓ · ORDER COMPLETE · #' + a.order, esc(by) + '. Pack and ship without: <b>' + esc(M.text) + '</b><br>The manager sees it on the manager page.' + scannedTotal(oo)); sDone(); }
+    else { setStatus('warn', '📦 SHIP SHORT ✓ · #' + a.order, esc(by) + '. Leave out: <b>' + esc(M.text) + '</b><br>Now scan the other items · ស្កេនទំនិញផ្សេងទៀត<br>' + expectedText(oo)); sOk(); render(true); }
   } else {
     closeOrderIssues(a.order, swhy, sup.name, 'short');
-    setStatus('warn', '📦 SHIP SHORT ✓ · #' + a.order, 'Approved by ' + esc(sup.name) + '. Pack and ship without: <b>' + esc(M.text) + '</b><br>Open the order and scan the other items. The manager will fix it in Vrich.'); sDone();
+    setStatus('warn', '📦 SHIP SHORT ✓ · #' + a.order, esc(by) + '. Pack and ship without: <b>' + esc(M.text) + '</b><br>Open the order and scan the other items. The manager sees it on the manager page.'); sDone();
   }
   focusScan();
 }
 
 // staff ask the manager (upload page) to approve shipping without the ticked item(s); the order waits meanwhile
-const isShortR = r => r === 'ask' || r === 'tosup' || r === 'short';
+const isShortR = r => r === 'ask' || r === 'tosup' || r === 'short' || r === 'self';
+const noPin = r => r === 'ask' || r === 'tosup' || r === 'self';
 const toWho = i => i && i.to === 'sup' ? 'supervisor' : 'manager';
 function askManager(a, why, M, to) {
   const o = orders[a.order] || {};
@@ -976,7 +1128,13 @@ function askManager(a, why, M, to) {
 }
 // the manager answered a request (upload page): tell the staff at once
 function managerAnswered(before, now) {
-  if (!before || before.type !== 'shortreq' || ACT) return;
+  if (!before || ACT) return;
+  if (before.type === 'repackreq') {
+    if (now.type === 'repackok') { setStatus('done', '✓ MANAGER APPROVED PACKING AGAIN · #' + now.order, 'Scan order #' + esc(now.order) + ' and pack it again.' + (now.mnote ? '<br>Manager: ' + esc(now.mnote) : '')); sDone(); buzz([40, 60, 40]); }
+    else if (now.type === 'repackno') { setStatus('stop', '✗ DO NOT PACK AGAIN · #' + now.order, 'The manager rejected packing this order again. Put the items back.' + (now.mnote ? '<br>Manager: ' + esc(now.mnote) : '')); sBad(); buzz([200, 80, 200]); }
+    return;
+  }
+  if (before.type !== 'shortreq') return;
   if (now.type === 'short') { setStatus('done', '✓ ' + (now.via === 'sup' ? 'SUPERVISOR' : 'MANAGER') + ' APPROVED SHIP SHORT · #' + now.order, 'Ship without: <b>' + esc((now.label || '').replace(/^(Missing|Shipped without): /, '')) + '</b>' + (now.mnote ? '<br>Manager: ' + esc(now.mnote) : '') + '<br>Scan order #' + esc(now.order) + ' again and scan the other items.'); sDone(); buzz([40, 60, 40]); }
   else if (now.type === 'incomplete') { setStatus('bad', '✗ SHIP SHORT REJECTED · #' + now.order, 'Find the missing item and finish the order.' + (now.mnote ? '<br>Manager: ' + esc(now.mnote) : '')); sBad(); buzz([200, 80, 200]); }
 }
@@ -1092,7 +1250,7 @@ function scannedTotal(o) {
   sum = Math.round(sum * 100) / 100; all = Math.round(all * 100) / 100;
   return `<div style="margin-top:8px;font-size:30px;font-weight:800;line-height:1.1">💲 ${esc(V.money(sum))}</div><div style="opacity:.85">Total scanned · តម្លៃសរុប: ${pcs} pc${pcs > 1 ? 's' : ''}` + (noP ? ` (${noP} without price)` : '') + (!V.priceEq(sum, all) && !noP ? ` · full order ${esc(V.money(all))}` : '') + '</div>';
 }
-function finishOrder() { const now = localNow(); openIssues().filter(i => i.order === cur.id && i.type === 'short' && !i.packedAt).forEach(i => { i.packedAt = now; LS.set('issues', issues); if (store && online) store.set(COL.issues, i.id, { packedAt: now }, true).catch(() => {}); }); closeOrderIssues(cur.id, '', staffName(), 'completed'); sessEnd(cur.short && cur.short.some(Boolean) ? 'short' : 'complete'); sessReopen(); }
+function finishOrder() { const now = localNow(); openIssues().filter(i => i.order === cur.id && i.type === 'short' && !i.packedAt).forEach(i => { i.packedAt = now; LS.set('issues', issues); if (store && online) store.set(COL.issues, i.id, { packedAt: now }, true).catch(() => {}); }); closeOrderIssues(cur.id, '', staffName(), 'completed'); markDone(cur.id, cur.short && cur.short.some(Boolean) ? 'short' : 'complete'); delete repackPass[cur.id]; sessEnd(cur.short && cur.short.some(Boolean) ? 'short' : 'complete'); sessReopen(); }
 function sessReopen() { /* scans after completion (duplicates) start a fresh session for the same order */ if (cur) { sess = { id: cur.id + '_' + DEVICE + '_' + Date.now().toString(36), order: cur.id, staff: staffName(), d: V.today(), start: localNow(), end: '', result: 'after-complete', n: {}, scans: [] }; } }
 function correct(o, idx, code, extra) { cur.scanned[idx]++; const it = o.items[idx]; record('ok', code, { item: it.stock || it.code, ...(extra || {}) }); render(); afterCount(o, it); }
 // which line of this order does a scanned PokPok item belong to? (same rules as Scan Verify 13)
@@ -1125,9 +1283,10 @@ async function handleScan(raw) {
   if (ACT && (ACT.kind === 'confirm' || ACT.kind === 'aconfirm')) { hideAct(); }
   else if (ACT && ACT.kind !== 'aok') return;        // supervisor panel open: ignore scans ('aok' = re-run after ✓ check by eye)
   await pokReady; if (CAT.busy) await CAT.busy;
+  if (starting) { setStatus('warn', 'Wait · checking order #' + starting, 'Scan again in a second'); sWarn(); return; }
 
   const oid = await findOrder(code);
-  if (oid && cur && cur.id === oid) { if (orders[oid].st === 'c') { startOrder(oid); return; } setStatus('warn', '⚠ ORDER SCANNED TWICE · ស្កេន Order ស្ទួន', `#${esc(oid)} is already open — scan the items, or tap "Next" to start another`); sWarn(); buzz([60, 40, 60]); return; }
+  if (oid && cur && cur.id === oid) { if (orders[oid].st === 'c' || orderDone()) { startOrder(oid); return; } setStatus('warn', '⚠ ORDER SCANNED TWICE · ស្កេន Order ស្ទួន', `#${esc(oid)} is already open — scan the items, or tap "Next" to start another`); sWarn(); buzz([60, 40, 60]); return; }
   if (oid && cur && cur.id !== oid && isUnfinished()) { askLeave(oid); return; }
   if (oid) { startOrder(oid); return; }
   if (!cur) { setStatus('bad', 'Order not found · រកមិនឃើញ Order', 'Scan the ORDER number first · ស្កេនលេខ Order ជាមុន<br>If you did: the manager has not uploaded this order yet.' + (!online ? '<br>☁ This phone is offline.' : '') + (lastErr ? '<br>☁ ' + esc(lastErr) : '')); sBad(); buzz([80, 40, 80]); return; }
@@ -1256,7 +1415,7 @@ $('fboff').onclick = () => { LS.del('fbconfig'); location.reload(); };
 const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
 let kbdOn = !coarse;
 function applyKbd() { $('scanbox').inputMode = kbdOn ? 'text' : 'none'; $('kbd').style.opacity = kbdOn ? 1 : .6; }
-function focusScan() { if (ACT && (ACT.kind === 'sup' || ACT.kind === 'quirk' || ACT.kind === 'resolve')) return; if ($('tab-scan').classList.contains('on')) $('scanbox').focus({ preventScroll: true }); }
+function focusScan() { if (ACT && (ACT.kind === 'sup' || ACT.kind === 'quirk' || ACT.kind === 'resolve' || ACT.kind === 'repack')) return; if ($('tab-scan').classList.contains('on')) $('scanbox').focus({ preventScroll: true }); }
 $('kbd').onclick = () => { kbdOn = !kbdOn; applyKbd(); $('scanbox').blur(); $('scanbox').focus(); };
 $('scanbox').addEventListener('keydown', e => { if (e.key === 'Enter') { const v = e.target.value; e.target.value = ''; handleScan(v); } });
 document.addEventListener('click', e => { if (!['TEXTAREA', 'INPUT', 'BUTTON', 'SUMMARY', 'SELECT'].includes(e.target.tagName) && !e.target.closest('button,input,details,select')) focusScan(); });
@@ -1315,13 +1474,14 @@ authReady.then(async ok => {
   store.watch(COL.meta, 'settings', s => { if (s === undefined) return; if (s) { SETTINGS = s; LS.set('syn', s.syn == null ? null : s.syn); LS.set('price', s.price === 'off' ? 'off' : 'on'); } V.setSyn(SETTINGS.syn); staffPicker(); renderIssues(); render(); if ($('tab-data').classList.contains('on')) renderData(); });
   store.watch(COL.meta, 'links', d => { if (d === undefined) return; LINKS = V.linksParse(d && d.txt); LS.set('links', (d && d.txt) || ''); });
   store.watch(COL.meta, 'loose', d => { if (d === undefined) return; LOOSE = V.looseParse(d && d.txt); LS.set('loose', (d && d.txt) || ''); });
-  syncIssues(true); flushLog();
-  // open issues from every phone, live (billed once, then only for issues that change)
-  store.watchQuery(COL.issues, [['status', '==', 'open']], (docs, err) => {
+  resendIssues(); flushLog();          // 13 Nov 2026: no 14-day issue download on every page open (the live listener below keeps open issues current)
+  // issues of the last ISS_DAYS days from every phone, live (billed once, then only for issues that change).
+  // Older open issues (weeks of holds) stay with the manager page; a phone fetches an old order's own issues when it is scanned.
+  store.watchQuery(COL.issues, [['t', '>=', ISS_CUT]], (docs, err) => {
     if (err || !docs) return;
     const cloud = new Map(docs.map(d => [d.id, d.data]));
-    cloud.forEach((v, id) => { const i = issues.findIndex(x => x.id === id); if (i < 0) issues.push({ ...v, id, synced: true }); else if (issues[i].status !== 'cleared') { const before = issues[i]; issues[i] = { ...issues[i], ...v, id, synced: true }; if (before.type !== v.type && before.staff === staffName()) managerAnswered(before, issues[i]); } });
-    issues.forEach(i => { if (i.status === 'open' && i.synced && !cloud.has(i.id) && Date.now() - tms(i.t) > 45000) { i.status = 'cleared'; i.clearedAt = i.clearedAt || localNow(); i.clearedBy = i.clearedBy || '(other device)'; } });
+    cloud.forEach((v, id) => { const i = issues.findIndex(x => x.id === id); if (i < 0) issues.push({ ...v, id, synced: true }); else if (pendingIss(issues[i])) return; else if (issues[i].status !== 'cleared') { const before = issues[i]; issues[i] = { ...issues[i], ...v, id, synced: true }; if (before.type !== v.type && before.staff === staffName()) managerAnswered(before, issues[i]); } });
+    issues.forEach(i => { if (i.status === 'open' && i.synced && String(i.t) >= ISS_CUT && !cloud.has(i.id) && Date.now() - tms(i.t) > 45000) { i.status = 'cleared'; i.clearedAt = i.clearedAt || localNow(); i.clearedBy = i.clearedBy || '(other device)'; } });
     LS.set('issues', issues); renderIssues(); supAlert();
   });
 });
