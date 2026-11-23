@@ -8,6 +8,11 @@
 <!-- VH Shop Scan Verify · manager upload page. Replaces the Catalog Cleaner: reads the PokPok product list, the Vrich stock export and the
      Vrich order export, cleans and checks them, and saves them to Firestore (catalogs as compressed chunks, orders one document each).
      Staff never open this page. Nothing here is committed to GitHub.
+     1.4 (23-24 Nov 2026): issues are gone. Phones keep a shift list; "Submit shift" uploads ONE compressed document per shift
+     (scan_log/shift_<id>, kind 'shift', order rows gzipped in z; deleted with the scan logs after 7 days). To fix now has
+     🧾 Scanners (each scanner's orders + issues and why) and 📊 6-day summary (3 lives: Vrich orders + sales per day, scanned,
+     issues by who). Old issue review, ship-short / pack-again answers, staff accuracy and the scan export were removed (they read
+     thousands of documents). Everything is kept 7 days (was 35), old issues included, then deleted by the daily clean-up.
      1.1 (22 Oct 2026): ship-short requests show the items staff ticked + their note; ⚡ technical quirks to review;
      Staff accuracy counts quirks; ⬇ export of every scanned order with the orders that went through the manager.
      Shoes: Vrich "7H38" (size in the sale code) matches PokPok "7H ស្បែកជើង" size 38 (V.sizeSplit).
@@ -118,7 +123,6 @@ code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
   <div id="app" class="hide">
     <!-- ===== status ===== -->
     <div class="card">
-      <div id="reqbanner"></div>
       <h2>Now online</h2>
       <div class="sum" id="status"></div>
     </div>
@@ -148,18 +152,11 @@ code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
     <!-- ===== to-fix ===== -->
     <div class="card">
       <h2>To fix · ត្រូវកែ</h2>
-      <div class="tabs"><button id="t-ready" class="on">Orders that can't scan</button><button id="t-cat">Catalog problems</button><button id="t-iss">Missing codes &amp; holds <span id="issn"></span></button><button id="t-staff">Staff accuracy &amp; export</button></div>
+      <div class="tabs"><button id="t-ready" class="on">Orders that can't scan</button><button id="t-shift">🧾 Scanners</button><button id="t-sum">📊 6-day summary</button><button id="t-cat">Catalog problems</button></div>
       <div id="p-ready"></div>
+      <div id="p-shift" class="hide"></div>
+      <div id="p-sum" class="hide"></div>
       <div id="p-cat" class="hide"></div>
-      <div id="p-iss" class="hide"></div>
-      <div id="p-staff" class="hide">
-        <div class="row"><input id="sdate" type="date"><button class="pri" id="sload">Load</button><span class="mut" id="sinfo">Reads one document per scanned order (about 4,000 for a full day). A finished day is saved as a summary, so opening it again costs 1 read.</span></div>
-        <div id="sres"></div>
-        <h3 style="margin-top:18px">⬇ Export scans · which orders went through the manager</h3>
-        <div class="mut">One row per scanned order: who scanned it, the result, the scan counts, and every manager / supervisor step (ship short approved or rejected, technical quirk, dispute, PIN approval). Reads about one document per scanned order.</div>
-        <div class="row"><span class="mut">From</span><input id="xfrom" type="date"><span class="mut">to</span><input id="xto" type="date"><button class="pri" id="xgo">Load</button><span class="mut" id="xinfo"></span></div>
-        <div id="xres"></div>
-      </div>
     </div>
 
     <!-- ===== settings ===== -->
@@ -172,24 +169,24 @@ code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
 
     <div class="card">
       <h2>💲 Price check · ពិនិត្យតម្លៃ</h2>
-      <div class="mut">ON: a scanned PokPok label counts only if its PokPok <b>Price</b> is the same as the price of the line in the Vrich <b>order</b> (per piece: Vrich's Price ÷ Quantity). Wrong price = red <i>WRONG PRICE</i> on the phone, not counted; staff take the right item, or a supervisor approves / ⚡ quirk. Items with no price (empty or 0) are not checked, and neither are orders uploaded before this version — upload today's order file again to add the prices. Phones switch at once.</div>
+      <div class="mut">ON: a scanned PokPok label counts only if its PokPok <b>Price</b> is the same as the price of the line in the Vrich <b>order</b> (per piece: Vrich's Price ÷ Quantity). Wrong price = red <i>WRONG PRICE</i> on the phone, not counted; staff take the right item, or count it as a ⚡ quirk with a reason. Items with no price (empty or 0) are not checked, and neither are orders uploaded before this version — upload today's order file again to add the prices. Phones switch at once.</div>
       <div class="row"><select id="pricemode"><option value="on">ON — wrong price is not counted</option><option value="off">OFF</option></select><button id="pricesave">Save</button><span id="pricemsg" class="mut"></span></div>
     </div>
 
     <div class="card">
       <h2>Staff &amp; supervisors</h2>
-      <div class="mut">Staff names appear as a list on the phones. A supervisor PIN approves one item in one order when the catalog cannot be fixed straight away. Use 6 digits or more.</div>
+      <div class="mut">Staff names appear as a list on the phones.</div>
       <h3>Staff names (one per line)</h3>
       <textarea id="staffl"></textarea>
       <div class="row"><button id="staffsave">Save staff list</button><span id="staffmsg" class="mut"></span></div>
-      <h3>Supervisors</h3>
+      <div class="hide"><h3>Supervisors</h3><!-- 1.4: phones no longer ask for a supervisor PIN -->
       <div id="suplist"></div>
-      <div class="row"><input id="supname" placeholder="Supervisor name"><input id="suppin" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="supadd">Add / change PIN</button><span id="supmsg" class="mut"></span></div>
+      <div class="row"><input id="supname" placeholder="Supervisor name"><input id="suppin" type="password" inputmode="numeric" placeholder="New PIN (6+ digits)"><button id="supadd">Add / change PIN</button><span id="supmsg" class="mut"></span></div></div>
     </div>
 
     <div class="card">
       <h2>Housekeeping</h2>
-      <div class="mut">Orders, scan logs, cleared issues and approvals older than <b id="keepd"></b> days are deleted automatically once a day after an order upload. Open issues are never deleted.</div>
+      <div class="mut">Orders, scan logs, old issues and approvals older than <b id="keepd"></b> days are deleted automatically once a day.</div>
       <div class="row"><button id="cleanup">Run clean-up now</button><span id="cleanmsg" class="mut"></span></div>
       <details><summary>Firebase project</summary>
         <div class="mut" id="cfginfo" style="margin-top:6px"></div>
@@ -214,7 +211,7 @@ const VHS = (function () {
   C.P = 'vhs_';                                   // localStorage prefix + IndexedDB name (never vhm_)
   C.IDB = 'vhs_scan';
   C.COL = { orders: 'scan_orders', idx: 'scan_orders_idx', log: 'scan_log', issues: 'scan_issues', ovr: 'scan_overrides', cat: 'scan_catalog', meta: 'scan_meta' };
-  C.KEEP_DAYS = 35;
+  C.KEEP_DAYS = 7;                                // 23 Nov 2026: one week (was 35) — fewer reads/writes, faster phones
   C.SHRINK = 0.5;                                 // an upload that loses more than 50% of the items is blocked
   C.CHUNK = 900000;                               // bytes per catalog chunk document (Firestore limit is 1 MiB)
   C.TZ_MS = 7 * 3600e3;                           // Cambodia, UTC+7
@@ -843,7 +840,7 @@ async function uploadPok() {
     });
     await syncDays();
     slotMsg('pok', box('ok', (SL.pok.partial ? `✓ Added ${fmt(D.added.length)}, updated ${fmt(D.changed.length + D.priced.length)} · ` : '') + `✓ Saved · ${fmt(info.count)} items · version ${esc(info.ver)}. Phones switch to it automatically.` + (fresh.length ? ` The first scan of each of the ${fmt(fresh.length)} new/changed item(s) asks staff to confirm the item.` : '')));
-    drawStatus(); drawCat(); drawIssues(); autoPublishMap();
+    drawStatus(); drawCat(); autoPublishMap();
   } catch (err) { slotMsg('pok', box('bad', 'Not saved: ' + esc(nice(err)))); }
 }
 
@@ -1185,180 +1182,134 @@ async function drawMap() {
   };
 }
 $('mapgo').onclick = () => drawMap();
-async function drawIssues() {
-  const el = $('p-iss');
-  try { ST.issues = (await store.query(COL.issues, [['status', '==', 'open']])).map(d => Object.assign({ id: d.id }, d.data)); } catch (e) { el.innerHTML = box('bad', esc(nice(e))); return; }
-  let pok = null; try { pok = await currentCatalog('pok'); } catch (e) {}
-  const P = pok ? V.buildPok(pok.records) : new Map();
-  const RP = ['repackreq', 'repackok'], rpq = ST.issues.filter(i => i.type === 'repackreq'), rpok = ST.issues.filter(i => i.type === 'repackok');
-  const reqs = ST.issues.filter(i => i.type === 'shortreq'), short = ST.issues.filter(i => i.type === 'short'), quirk = ST.issues.filter(i => i.type === 'quirk'), allowed = ST.issues.filter(i => i.type === 'allowed'), disp = ST.issues.filter(i => i.disputed && i.type !== 'short' && i.type !== 'shortreq' && i.type !== 'quirk' && i.type !== 'allowed' && !RP.includes(i.type));
-  const rest = ST.issues.filter(i => i.type !== 'short' && i.type !== 'shortreq' && i.type !== 'quirk' && i.type !== 'allowed' && !RP.includes(i.type) && !i.disputed);
-  const unk = rest.filter(i => i.type === 'wrong' && !i.label), held = rest.filter(i => i.type === 'incomplete'), other = rest.filter(i => !unk.includes(i) && !held.includes(i));
-  $('issn').textContent = ST.issues.length ? '(' + ST.issues.length + ')' : '';
-  const btn = (id, act, label, cls) => `<button data-act="${act}" data-id="${esc(id)}" class="${cls || ''}" style="min-height:32px;white-space:nowrap">${esc(label)}</button>`;
-  const rows = (head, list, cells) => foldRows(head.map(x => '<th>' + esc(x) + '</th>').join(''), list.map(i => '<tr>' + cells(i).map(c => '<td>' + c + '</td>').join('') + '</tr>'));
-  let h = `<div class="row"><button id="issref">↻ Refresh</button><span class="mut">${fmt(ST.issues.length)} open. Issues close by themselves when staff finish the order. Anything still open after ${EXPIRE.other} days (Mixed records and unanswered ship-short requests: ${EXPIRE.allowed} days) is closed automatically once a day${ST.expired && ST.expired.n ? ` — <b>${fmt(ST.expired.n)}</b> old issue(s) closed automatically today` : ''}${ST.packed && (ST.packed.n || ST.packed.hidden) ? ` — <b>${fmt(ST.packed.n)}</b> closed because the order was already packed${ST.packed.hidden ? ` (${fmt(ST.packed.hidden)} "System is wrong?" kept here, removed from phones)` : ''}` : ''}.</span><button id="issexp" style="min-height:32px">Close old + packed issues now</button></div>`;
-  h += `<h3>🔁 Pack again — order was already packed <span class="tag ${rpq.length ? 'bad' : 'ok'}">${rpq.length}</span></h3><div class="mut">Staff scanned an order that was already scanned complete (or shipped short). Approve only if it really must be packed again (customer changed it, box damaged) — otherwise it may be shipped twice.</div>`;
-  if (rpq.length) h += rows(['Order', 'Customer', 'Packed before', 'Why again', 'When', 'Your note', ''], rpq, i => ['#' + esc(i.order), esc(i.fb || ''), esc((i.expected || '').replace(/^Packed before: /, '')), esc(i.reason), esc(V.when(i.t)), `<input data-note="${esc(i.id)}" placeholder="optional" style="min-width:140px">`, btn(i.id, 'rpok', '✓ Approve', 'pri') + ' ' + btn(i.id, 'rpno', '✗ Reject', 'danger')]);
-  if (rpok.length) h += `<details><summary>${rpok.length} approved, not packed again yet</summary>` + rows(['Order', 'Approved', 'Packed before', 'When', ''], rpok, i => ['#' + esc(i.order), esc(i.reason), esc((i.expected || '').replace(/^Packed before: /, '')), esc(V.when(i.approvedAt || i.t)), btn(i.id, 'rpcancel', 'Withdraw')]) + '</details>';
-  if (reqs.length) h += `<div class="mut" style="margin-top:8px"><b>Note:</b> phones no longer send these requests — staff now ship short themselves and it shows in the list below. Answer the ones still here (or they close after ${EXPIRE.shortreq} days).</div>`;
-  h += `<h3>⏳ Ship short — waiting for approval <span class="tag ${reqs.length ? 'bad' : 'ok'}">${reqs.length}</span></h3><div class="mut">Requests sent to you or to a supervisor (the supervisor answers on their phone; you can answer either).</div><div class="mut">Staff could not find these items. Approve = they pack and ship without them (the order then moves to the list below). Reject = they must find the item.</div>`;
-  if (reqs.length) h += rows(['Order', 'Customer', 'Missing', 'Reason · note', 'Asked by · sent to', 'When', 'Your note', ''], reqs, i => ['#' + esc(i.order), esc(i.fb || ''), '<b>' + esc((i.label || '').replace(/^Missing: /, '')) + '</b>' + ((i.miss || []).some(m => m.scanned) ? '<div class="mut">code entered: ' + esc(i.miss.map(m => m.scanned).filter(Boolean).join(', ')) + '</div>' : ''), esc(i.snote || (i.reason || '').replace(/^Asked by [^—]*—\s*/, '')), esc(i.staff || '') + '<div class="mut">→ ' + (i.to === 'sup' ? '👤 supervisor' : 'manager') + '</div>', esc(V.when(i.t)), `<input data-note="${esc(i.id)}" placeholder="e.g. refund $3 / send later" style="min-width:160px">`, btn(i.id, 'approve', '✓ Approve', 'pri') + ' ' + btn(i.id, 'reject', '✗ Reject', 'danger')]);
-  h += `<h3>📦 Shipped short — for your information <span class="tag ${short.length ? 'warn' : 'ok'}">${short.length}</span></h3><div class="mut">Staff packed these orders without the item(s) below. Fix the order in Vrich / tell the customer if needed, then tap ✓ Seen. Not seen after ${EXPIRE.other} days = closed automatically.</div>`;
-  if (short.length) h += `<div class="row"><button id="shortseen" style="min-height:32px">✓ Mark all ${fmt(short.length)} as seen</button></div>` + rows(['Order', 'Customer', 'Sent without', 'Who · why', 'When', ''], short, i => ['#' + esc(i.order), esc(i.fb || ''), '<b>' + esc((i.label || '').replace(/^(Shipped without|Missing): /, '')) + '</b>', esc(i.reason || '') + (i.mnote ? '<div class="mut">' + esc(i.mnote) + '</div>' : ''), esc(V.when(i.t)), btn(i.id, 'seen', '✓ Seen')]);
-  h += `<h3>⚡ Technical quirks — staff say the item is correct <span class="tag ${quirk.length ? 'bad' : 'ok'}">${quirk.length}</span></h3><div class="mut">Staff checked the item by eye and counted it without a PIN because the system would not take it. Look at the scanned label: if PokPok / Vrich data is the problem, fix it (or 🔗 Match) and tap <b>Quirk confirmed</b>. If the wrong item was packed, tap <b>Staff mistake</b> and fix the parcel.</div>`;
-  if (quirk.length) h += rows(['Order', 'Customer', 'Scanned', 'Counted for', 'Staff note', 'Staff', 'When', ''], quirk, i => ['#' + esc(i.order), esc(i.fb || ''), esc(((i.label || '') + ' ' + i.code).trim()), esc((i.line || '') + ' ' + (i.lineDesc || '')), esc(i.reason || ''), esc(i.staff || ''), esc(V.when(i.t)), btn(i.id, 'qok', '✓ Quirk confirmed', 'pri') + ' ' + btn(i.id, 'qstaff', 'Staff mistake', 'danger')]);
-  h += `<h3>✓ អីវ៉ាន់ចម្រុះ · Mixed — what staff packed <span class="tag ${allowed.length ? 'warn' : 'ok'}">${allowed.length}</span></h3><div class="mut">These order lines counted only because the code is អីវ៉ាន់ចម្រុះ (mixed — any colour/size). Check the colour/size that was packed against the order, then tap <b>Seen</b>.</div>`;
-  if (allowed.length) h += rows(['Order', 'Customer', 'Packed (scanned label)', 'Order line', 'Staff', 'When', ''], allowed, i => ['#' + esc(i.order), esc(i.fb || ''), '<b>' + esc(((i.label || '') + ' · ' + i.code).trim()) + '</b>', esc((i.line || '') + ' ' + (i.lineDesc || '')), esc(i.staff || ''), esc(V.when(i.t)), btn(i.id, 'seen', '✓ Seen', 'pri')]) + `<div class="row"><button id="seenall">✓ Seen all ${allowed.length}</button></div>`;
-  h += `<h3>⚖ Staff say the system is wrong <span class="tag ${disp.length ? 'warn' : 'ok'}">${disp.length}</span></h3><div class="mut">Look up the scanned barcode. If PokPok's name/colour/size is wrong for that item, it is a catalog problem (fix it in PokPok or with 🔗 Match). Otherwise the wrong item was picked.</div>`;
-  if (disp.length) h += rows(['Order', 'Scanned', 'Order needed', 'Staff', 'When', ''], disp, i => ['#' + esc(i.order), esc((i.label || '') + ' ' + i.code), esc(i.expected), esc(i.disputeBy || i.staff), esc(V.when(i.disputeAt || i.t)), btn(i.id, 'catalog', 'Catalog problem (staff right)') + ' ' + btn(i.id, 'staff', 'Staff mistake')]);
-  const byCode = new Map(); unk.forEach(i => { const k = nz(i.code); (byCode.get(k) || byCode.set(k, []).get(k)).push(i); });
-  h += `<h3>Barcodes not in the PokPok list <span class="tag ${byCode.size ? 'bad' : 'ok'}">${byCode.size}</span></h3><div class="mut"><b>PokPok person:</b> add these items, then upload the PokPok list. The issue closes when staff rescan and finish the order.</div>`;
-  if (byCode.size) h += tbl(['Barcode', 'Now', 'Orders waiting', 'Scanned by', 'Last'], [...byCode].map(([k, a]) => [k, P.get(k) ? '✓ now in catalog: ' + P.get(k).label + ' — rescan' : 'still unknown', [...new Set(a.map(i => '#' + i.order))].join(' '), [...new Set(a.map(i => i.staff))].join(', '), V.when(a.map(i => i.t).sort().pop())]));
-  h += `<h3>Orders on hold / missing items <span class="tag ${held.length ? 'warn' : 'ok'}">${held.length}</span></h3>`;
-  if (held.length) h += tbl(['Order', 'Staff', 'When', 'What was missing'], held.map(i => ['#' + i.order, i.staff, V.when(i.t), i.expected || i.reason]));
-  h += `<h3>Wrong items, duplicates and checks <span class="tag ${other.length ? 'warn' : 'ok'}">${other.length}</span></h3>`;
-  if (other.length) h += tbl(['Type', 'Order', 'Scanned', 'Reason', 'Staff', 'When'], other.map(i => [i.type, '#' + i.order, (i.label || '') + ' ' + i.code, i.reason, i.staff, V.when(i.t)]));
-  if (rest.length) h += `<div class="row"><span class="mut">Close all ${fmt(rest.length)} remaining open issue(s) as:</span><select id="issreason"><option value="">— choose a reason —</option><option value="other">Checked by manager</option><option value="mistake">Mistake scans</option></select><input id="issnote" placeholder="Note (required)"><button id="issclear" class="danger">Close all…</button></div>`;
-  el.innerHTML = h;
-  $('issref').onclick = drawIssues;
-  $('issexp').onclick = async () => { $('issexp').disabled = true; try { const n = await autoExpire(true); ST.expired = { n: (n || 0), at: V.localNow() }; await closePacked(true); } catch (e) { alert(nice(e)); } drawIssues(); };
-  el.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
-    b.disabled = true; const id = b.dataset.id, act = b.dataset.act, is = ST.issues.find(i => i.id === id), ni = el.querySelector(`[data-note="${CSS.escape(id)}"]`), note = ni ? clean(ni.value) : '';
-    try {
-      if (act === 'approve' || act === 'reject') await answerShort(is, act === 'approve', note);
-      else if (act === 'rpok' || act === 'rpno' || act === 'rpcancel') await answerRepack(is, act, note);
-      else if (act === 'vrich' || act === 'notified') await shortStep(is, act);
-      else await closeIssues([id], act, '');
-    } catch (e) { alert(nice(e)); }
-    drawIssues();
+/* ---------- 🧾 Scanners + 📊 6-day summary (1.4, 23-24 Nov 2026) ----------
+ * "Submit shift" on a phone uploads ONE compressed document per shift into scan_log (id shift_<id>, kind 'shift'): the totals
+ * readable, the order rows (order #, customer, result, time, scanner, issue kinds, reason, scans not counted, pcs ordered,
+ * pcs packed, total packed, order total, codes not in PokPok) gzipped in z. Reading a window = one read per shift.
+ * The 6-day summary also reads the order day lists (one read per day). */
+const RES_SH = { complete: 'Complete', short: 'Shipped short', hold: 'On hold', open: 'Not finished', cancelled: 'Cancelled' };
+const shIssue = x => x.r !== 'complete' || !!x.w;
+const shShip = x => x.r === 'complete' || x.r === 'short';
+const r2 = n => Math.round(n * 100) / 100;
+const SHC = {};          // shifts already read, by window (2 minutes)
+function decodeShift(id, x) {
+  let rows = []; try { rows = V.unpack(store.bytes(x.z)); } catch (e) { console.warn('shift ' + id, e); }
+  return { id, device: x.device || '', start: x.start || '', end: x.end || '', d: x.d || '', staff: x.staff || '', n: x.n || 0, ok: x.ok || 0, iss: x.iss || 0, ship: x.ship || 0, pcs: x.pcs || 0, val: x.val || 0, x: x.miss || 0, unk: x.unk || '',
+    orders: rows.map(a => ({ o: String(a[0]), f: a[1] || '', r: a[2] || '', t: a[3] || '', s: a[4] || '', k: a[5] || '', w: a[6] || '', x: a[7] || 0, q: a[8] || 0, qs: a[9] || 0, v: a[10] || 0, vf: a[11] || 0, u: a[12] || '' })) };
+}
+async function loadShifts(from, to, fresh) {
+  const k = from + '_' + to;
+  if (!fresh && SHC[k] && Date.now() - SHC[k].at < 120000) return SHC[k].list;
+  const L = (await store.query(COL.log, [['kind', '==', 'shift']])).map(x => decodeShift(x.id, x.data)).filter(x => x.d >= from && x.d <= to);
+  L.sort((a, b) => String(b.end || '').localeCompare(String(a.end || '')));
+  SHC[k] = { at: Date.now(), list: L }; return L;
+}
+// one line per order: the LAST thing that happened to it (held in one shift, finished in the next = no issue)
+function shOrders(L) {
+  const m = new Map();
+  L.forEach(S => S.orders.forEach(x => { const r = Object.assign({ shift: S, staff: x.s || S.staff || '' }, x), old = m.get(x.o); if (!old || String(x.t) > String(old.t)) m.set(x.o, r); }));
+  return [...m.values()].sort((a, b) => String(b.t).localeCompare(String(a.t)));
+}
+// per scanner: orders they scanned, what they shipped (pieces + 💲) and their issues by kind
+function byWho(L) {
+  const last = shOrders(L), per = {};
+  const P = n => per[n] = per[n] || { orders: new Set(), shifts: 0, pcs: 0, val: 0, iss: 0, miss: 0, hold: 0, short: 0, repack: 0, quirk: 0, open: 0 };
+  L.forEach(S => { [...new Set(S.orders.map(x => x.s || S.staff || '(no name)'))].forEach(n => P(n).shifts++); S.orders.forEach(x => { const p = P(x.s || S.staff || '(no name)'); p.orders.add(x.o); p.miss += x.x || 0; }); });
+  last.forEach(x => { const p = P(x.staff || '(no name)'); if (shShip(x)) { p.pcs += x.qs || 0; p.val += x.v || 0; } if (!shIssue(x)) return; p.iss++; const ks = String(x.k || '').split(',').filter(Boolean); ks.forEach(k => { if (p[k] != null) p[k]++; }); if (!ks.length && (x.r === 'open' || x.r === 'hold')) p.open++; });
+  return Object.keys(per).sort().map(n => Object.assign({ name: n }, per[n], { orders: per[n].orders.size, val: r2(per[n].val) }));
+}
+const WHO_HEAD = ['Scanner', 'Shifts', 'Orders scanned', 'Pcs shipped', '💲 Shipped', 'With issues', '⏸ Hold', '📦 Ship short', '🔁 Pack again', '⚡ Quirk', 'Not finished', 'Scans not counted'];
+const whoRow = p => [p.name, p.shifts, p.orders, p.pcs, V.money(p.val), p.iss, p.hold, p.short, p.repack, p.quirk, p.open, p.miss];
+const totCell = x => shShip(x) ? V.money(x.v || 0) : 'not shipped (' + V.money(x.vf || 0) + ')';
+const SHW = { from: V.dayShift(V.today(), -5), to: V.today() };
+// 🧾 Scanners: one section per scanner — their totals, their issue orders, then all their orders (folded)
+async function drawShifts(fresh) {
+  const el = $('p-shift');
+  const top = `<div class="mut">Each phone uploads its list when staff tap <b>Submit shift</b> (one small compressed document per shift, deleted after ${V.KEEP_DAYS} days). An order held in one shift and finished in a later one counts for the scanner who finished it.</div>` +
+    `<div class="row"><span class="mut">From</span><input type="date" id="shwf" value="${esc(SHW.from)}" max="${esc(V.today())}"><span class="mut">to</span><input type="date" id="shwt" value="${esc(SHW.to)}" max="${esc(V.today())}"><button class="pri" id="shwgo">Show</button><button id="shwre">↻ Refresh</button></div>`;
+  el.innerHTML = top + '<div class="mut">Loading…</div>'; wireShifts();
+  let L; try { L = await loadShifts(SHW.from, SHW.to, fresh); } catch (e) { el.innerHTML = top + box('bad', esc(nice(e))); wireShifts(); return; }
+  const last = shOrders(L), bad = last.filter(shIssue), ship = last.filter(shShip), W = byWho(L).sort((x, y) => y.orders - x.orders);
+  const unk = new Map(); L.forEach(S => String(S.unk || '').split(' ').filter(Boolean).forEach(c => unk.set(c, (unk.get(c) || 0) + 1)));
+  let h = top + `<div class="sum">${cell(W.length, 'scanners')}${cell(last.length, 'orders scanned', 'ok')}${cell(ship.length, 'orders shipped', 'ok')}${cell(ship.reduce((a, x) => a + (x.qs || 0), 0), 'pcs shipped')}${cell(V.money(r2(ship.reduce((a, x) => a + (x.v || 0), 0))), '💲 shipped (Vrich price)', 'ok')}${cell(bad.length, 'with issues', bad.length ? 'bad' : 'ok')}</div>`;
+  if (!L.length) { el.innerHTML = h + '<div class="mut">No shift submitted for these days yet.</div>'; wireShifts(); return; }
+  h += `<div class="row"><input id="shq" placeholder="🔎 Find an order: order #, customer, reason…" style="flex:1;min-width:220px" autocomplete="off"><span class="mut" id="shqn"></span><button id="shcsv1">⬇ All orders (CSV)</button></div>`;
+  const who = x => x.staff || '(no name)';
+  SHW.who = W.map(p => ({ name: p.name, list: last.filter(x => who(x) === p.name) }));
+  SHW.who.forEach((G, i) => {
+    const p = W[i], mineBad = G.list.filter(shIssue);
+    const shifts = L.filter(S => S.orders.some(x => (x.s || S.staff || '(no name)') === p.name)).sort((x, y) => String(x.start).localeCompare(String(y.start)))
+      .map(S => esc(V.when(S.start).slice(5)) + ' → ' + esc(V.when(S.end).slice(11)) + (S.device ? ' <span class="mut">(📱' + esc(S.device) + ')</span>' : '')).join(' · ');
+    const kinds = [['⏸ Hold', p.hold], ['📦 Ship short', p.short], ['🔁 Pack again', p.repack], ['⚡ Quirk', p.quirk], ['⚠ Not finished', p.open], ['✗ Scans not counted', p.miss]].filter(k => k[1]).map(k => k[0] + ' <b>' + fmt(k[1]) + '</b>').join(' · ');
+    h += `<div class="slot" style="margin-top:16px"><h3 style="margin:0;font-size:18px">👤 ${esc(p.name)}</h3><div class="mut">Shift${p.shifts > 1 ? 's' : ''}: ${shifts}</div>` +
+      `<div class="sum">${cell(p.orders, 'orders scanned', 'ok')}${cell(p.pcs, 'pcs shipped')}${cell(V.money(p.val), '💲 shipped', 'ok')}${cell(p.iss, 'with issues', p.iss ? 'bad' : 'ok')}</div>` +
+      (kinds ? `<div class="mut">${kinds}</div>` : '') +
+      (mineBad.length ? `<h3>⚠ Orders with issues <span class="tag bad">${fmt(mineBad.length)}</span></h3>` + tbl(['Time', 'Order', 'Customer', 'Items', 'Total', 'Result', 'Issue / reason'], mineBad.map(x => [V.when(x.t).slice(5), '#' + x.o, x.f || '', (x.qs || 0) + '/' + (x.q || 0), totCell(x), RES_SH[x.r] || x.r, x.w || ''])) : box('ok', '✓ No issues')) +
+      `<details class="olist" data-i="${i}" style="margin-top:10px"><summary>📋 All ${fmt(G.list.length)} orders of ${esc(p.name)} <span class="mut" data-n="${i}"></span></summary><div data-box="${i}"></div></details>` +
+      `<div class="row"><button data-csv="${i}">⬇ ${esc(p.name)}'s orders (CSV)</button></div></div>`;
   });
-  if ($('seenall')) $('seenall').onclick = async () => { await closeIssues(allowed.map(i => i.id), 'seen', ''); drawIssues(); };
-  if ($('shortseen')) $('shortseen').onclick = async () => { $('shortseen').disabled = true; await closeIssues(short.map(i => i.id), 'seen', ''); drawIssues(); };
-  if ($('issclear')) $('issclear').onclick = async () => {
-    const r = $('issreason').value, note = clean($('issnote').value);
-    if (!r || !note) { alert('Choose a reason and write a note.'); return; }
-    if (!confirm('Close ' + rest.length + ' open issue(s)?')) return;
-    await closeIssues(rest.map(i => i.id), r, note); drawIssues();
-  };
+  if (unk.size) h += `<h3>Barcodes not in the PokPok list <span class="tag warn">${fmt(unk.size)}</span></h3><div class="mut"><b>PokPok person:</b> add these items, then upload the PokPok list.</div><div class="mut" style="margin-top:4px">${[...unk.keys()].sort().map(esc).join(', ')}</div>`;
+  el.innerHTML = h; wireShifts();
+  drawOrderList();
+  let qT; $('shq').oninput = () => { clearTimeout(qT); qT = setTimeout(drawOrderList, 200); };
+  const head = ['Time', 'Scanner', 'Order', 'Customer', 'Items packed', 'Items ordered', 'Total shipped', 'Order total', 'Result', 'Issue / reason', 'Scans not counted'];
+  const rows = list => list.map(x => [V.when(x.t), who(x), x.o, x.f || '', x.qs || 0, x.q || 0, shShip(x) ? x.v || 0 : 0, x.vf || 0, RES_SH[x.r] || x.r, x.w || '', x.x || 0]);
+  $('shcsv1').onclick = () => csvDownload('orders-' + SHW.from + '_' + SHW.to + '.csv', head, rows(last));
+  el.querySelectorAll('[data-csv]').forEach(b => b.onclick = () => { const G = SHW.who[+b.dataset.csv]; csvDownload('orders-' + G.name.replace(/[^\wក-៿-]+/g, '_') + '-' + SHW.from + '_' + SHW.to + '.csv', head, rows(G.list)); });
 }
-// manager answers a ship-short request from a phone
-async function answerShort(is, ok, note) {
-  const now = V.localNow(), by = ST.user.email.split('@')[0] + ' (manager)', missing = (is.label || '').replace(/^Missing: /, '');
-  if (ok) {
-    const ops = [{ op: 'set', col: COL.issues, id: is.id, merge: true, data: { type: 'short', label: 'Shipped without: ' + missing, reason: 'Approved by ' + by + ' (asked by ' + (is.staff || '?') + ')', mnote: note, approvedAt: now, approvedBy: by, via: 'manager' } }];
-    ST.issues.filter(i => i.order === is.order && i.id !== is.id && i.type !== 'short' && i.type !== 'shortreq' && !i.disputed).forEach(i => ops.push({ op: 'set', col: COL.issues, id: i.id, merge: true, data: { status: 'cleared', clearedAt: now, clearedBy: by, resolution: 'short', note } }));
-    await store.batch(ops);
-  } else await store.set(COL.issues, is.id, { type: 'incomplete', code: '(on hold)', label: 'Ship short rejected', reason: 'Rejected by ' + by + (note ? ': ' + note : '') + ' — find the item', expected: 'Missing: ' + missing, mnote: note, rejectedAt: now }, true);
+// each scanner's 📋 order list: 1,000+ orders a day → the search box filters, and at most 300 rows each are drawn (the CSV has them all)
+function drawOrderList() {
+  const terms = clean($('shq') ? $('shq').value : '').toUpperCase().split(' ').filter(Boolean), MAX = 300; let total = 0;
+  (SHW.who || []).forEach((G, i) => {
+    const hit = terms.length ? G.list.filter(x => { const h = ('#' + x.o + ' ' + (x.f || '') + ' ' + (RES_SH[x.r] || '') + ' ' + (x.w || '')).toUpperCase(); return terms.every(t => h.includes(t)); }) : G.list;
+    total += hit.length;
+    const d = document.querySelector(`details.olist[data-i="${i}"]`), n = document.querySelector(`[data-n="${i}"]`);
+    if (terms.length) d.open = hit.length > 0;
+    n.textContent = terms.length ? '· ' + fmt(hit.length) + ' found' : '';
+    const rows = hit.slice(0, MAX).map(x => '<tr>' + [V.when(x.t).slice(11), '#' + x.o, x.f || '', (x.qs || 0) + '/' + (x.q || 0), totCell(x), shIssue(x) ? '⚠ ' + (RES_SH[x.r] || x.r) + (x.w ? ' — ' + x.w : '') : '✓'].map((c, k) => `<td${k === 3 || k === 4 ? ' class="n"' : ''}>${esc(c)}</td>`).join('') + '</tr>');
+    document.querySelector(`[data-box="${i}"]`).innerHTML = rows.length ? `<div class="scroll" style="max-height:480px;overflow-y:auto"><table><tr>${['Time', 'Order', 'Customer', 'Items', 'Total', 'Status / issue'].map(h => '<th style="position:sticky;top:0">' + esc(h) + '</th>').join('')}</tr>${rows.join('')}</table></div>` + (hit.length > MAX ? `<div class="mut">Showing the newest ${MAX} of ${fmt(hit.length)} — search, or ⬇ the CSV for all.</div>` : '') : '<div class="mut">Nothing found.</div>';
+  });
+  $('shqn').textContent = terms.length ? fmt(total) + ' order(s) found' : '';
 }
-// manager answers a "pack again" request: approve = the order may be scanned once more (used up when it is complete again)
-async function answerRepack(is, act, note) {
-  const now = V.localNow(), by = ST.user.email.split('@')[0] + ' (manager)';
-  if (act === 'rpok') await store.set(COL.issues, is.id, { type: 'repackok', label: 'Pack again approved', reason: 'Approved by ' + by + ' (asked by ' + (is.staff || '?') + ') — ' + (is.reason || '').replace(/^Asked by [^—]*— /, ''), mnote: note, approvedAt: now, approvedBy: by }, true);
-  else await store.set(COL.issues, is.id, { type: act === 'rpno' ? 'repackno' : 'repackok', status: 'cleared', clearedAt: now, clearedBy: by, resolution: act === 'rpno' ? 'rejected' : 'withdrawn', mnote: note, note }, true);
+function wireShifts() {
+  $('shwgo').onclick = () => { SHW.from = $('shwf').value || SHW.from; SHW.to = $('shwt').value || SHW.to; if (SHW.from > SHW.to) [SHW.from, SHW.to] = [SHW.to, SHW.from]; drawShifts(); };
+  $('shwre').onclick = () => drawShifts(true);
 }
-// a shipped-short order closes when it is fixed in Vrich AND the customer was told
-async function shortStep(is, step) {
-  const now = V.localNow(), data = { [step === 'vrich' ? 'vrichDone' : 'notified']: now }, other = step === 'vrich' ? is.notified : is.vrichDone;
-  if (other) Object.assign(data, { status: 'cleared', clearedAt: now, clearedBy: ST.user.email.split('@')[0] + ' (manager)', resolution: 'vrich' });
-  await store.set(COL.issues, is.id, data, true);
-}
-async function closeIssues(ids, resolution, note) {
-  const now = V.localNow(), data = { status: 'cleared', clearedAt: now, clearedBy: ST.user.email.split('@')[0] + ' (manager)', resolution, note: note || '' };
-  if (resolution === 'catalog' || resolution === 'staff') { data.status = 'cleared'; data.disputeResult = resolution; }
-  if (resolution === 'qok' || resolution === 'qstaff') data.quirkResult = resolution === 'qok' ? 'ok' : 'staff';
-  await store.batch(ids.map(id => ({ op: 'set', col: COL.issues, id, data, merge: true })));
-}
-['ready', 'cat', 'iss', 'staff'].forEach(k => { $('t-' + k).onclick = () => { ['ready', 'cat', 'iss', 'staff'].forEach(x => { $('t-' + x).classList.toggle('on', x === k); $('p-' + x).classList.toggle('hide', x !== k); }); if (k === 'cat') drawCat(); if (k === 'iss') drawIssues(); }; });
 
-/* ---------- staff accuracy (from the per-order scan logs) ---------- */
-async function staffStats(d) {
-  if (d < V.today()) { const s = await store.get(COL.meta, 'stats_' + d); if (s && s.per && s.v === 3) return s; }
-  const L = await store.query(COL.log, [['d', '==', d]]), per = {};
-  const P = k => per[k] = per[k] || { orders: 0, complete: 0, hold: 0, short: 0, ok: 0, wrong: 0, dup: 0, unk: 0, chk: 0, ovr: 0, loose: 0, quirk: 0, won: 0, lost: 0, disputes: 0, qok: 0, qstaff: 0, qwait: 0, qfree: 0, qwon: 0 };
-  L.forEach(({ data: x }) => {
-    const p = P(x.staff || '(no name)');
-    p.orders++; if (x.result === 'complete') p.complete++; if (x.result === 'hold') p.hold++; if (x.result === 'short') p.short++;
-    Object.keys(x.n || {}).forEach(r => { if (p[r] != null && r !== 'short' && r !== 'hold') p[r] += x.n[r]; });
-  });
-  // a wrong-item scan the manager judged a catalog problem is moved out of the staff member's mistakes
-  const I = await store.query(COL.issues, [['d', '==', d]]);
-  // technical quirks: the scan that failed is not held against the staff member unless the manager says it was a staff mistake
-  I.forEach(({ data: i }) => { if (i.type !== 'quirk') return; const p = P(i.staff || '(no name)'); if (i.quirkResult === 'staff') { p.qstaff++; if (i.scanR !== 'wrong') p.qfree++; } else { if (i.quirkResult === 'ok') p.qok++; else p.qwait++; if (i.scanR === 'wrong') p.qwon++; } });
-  I.forEach(({ data: i }) => { if (!i.disputed) return; const p = P(i.disputeBy || i.staff || '(no name)'); p.disputes++; if (i.disputeResult === 'catalog') p.won += i.count || 1; if (i.disputeResult === 'staff') p.lost += i.count || 1; });
-  const out = { v: 3, d, per, sessions: L.length, at: V.localNow() };
-  if (d < V.today() && L.length) { try { await store.set(COL.meta, 'stats_' + d, out); } catch (e) {} }
-  return out;
+// 📊 6 days = one cycle of about 3 lives (a live every other day, sometimes two days in a row): Vrich orders + sales per day,
+// how many of those orders were scanned (from the submitted shifts), and the issues by who
+const SUMW = { to: V.today() };
+async function drawSummary(fresh) {
+  const el = $('p-sum'), to = SUMW.to, from = V.dayShift(to, -5);
+  const pick = `<div class="row"><span class="mut">6 days ending</span><input type="date" id="sumto" value="${esc(to)}" max="${esc(V.today())}"><button class="pri" id="sumgo">Show</button><button id="sumre">↻ Re-read orders</button><span class="mut">${esc(from)} → ${esc(to)}</span></div>`;
+  el.innerHTML = pick + '<div class="mut">Loading…</div>';
+  const wire = () => { $('sumgo').onclick = () => { SUMW.to = $('sumto').value || SUMW.to; drawSummary(); }; $('sumre').onclick = () => drawSummary(true); };
+  const days = []; for (let i = 0; i < 6; i++) days.push(V.dayShift(from, i));
+  let err = '';
+  let L = []; try { L = await loadShifts(from, to, fresh); } catch (e) { err = nice(e); }
+  const last = shOrders(L), seen = new Map(last.map(x => [String(x.o), x]));
+  const D = [];
+  for (const d of days) {
+    const row = RD.list.find(o => o.d === d); if (!row) { D.push({ d, orders: 0 }); continue; }
+    let doc = null; try { if (fresh) delete RD.docs[d]; doc = await getDay(d); } catch (e) { err = err || nice(e); }
+    const byOrder = doc ? decodeDay(doc) : {}, ids = Object.keys(byOrder);
+    let pcs = 0, sales = 0, noPrice = 0, scanned = 0, iss = 0, shipV = 0;
+    ids.forEach(id => { byOrder[id].forEach(it => { pcs += it.qty; if (it.price == null) noPrice += it.qty; else sales += it.price * it.qty; }); const x = seen.get(id); if (x) { scanned++; if (shIssue(x)) iss++; if (shShip(x)) shipV += x.v || 0; } });
+    D.push({ d, orders: ids.length || row.orders || 0, pcs, sales: r2(sales), noPrice, scanned, iss, shipV: r2(shipV), bad: row.bad || 0, partial: !!(doc && doc.partial) });
+  }
+  const live = D.filter(x => x.orders), T = k => D.reduce((a, x) => a + (x[k] || 0), 0), bad = last.filter(shIssue), W = byWho(L);
+  let h = pick + (err ? box('bad', esc(err)) : '') + (L.length ? '' : box('warn', 'No shift submitted for these 6 days yet — scanned / issues stay 0 until the phones submit their shifts.')) +
+    `<div class="sum">${cell(live.length, 'live days (orders)')}${cell(T('orders'), 'Vrich orders')}${cell(T('pcs'), 'pieces sold')}${cell(V.money(r2(T('sales'))), '💲 sold (Vrich price)', 'ok')}${cell(last.length, 'orders scanned', 'ok')}${cell(V.money(r2(T('shipV'))), '💲 shipped (scanned)', 'ok')}${cell(bad.length, 'with issues', bad.length ? 'bad' : 'ok')}${cell(Math.max(0, T('orders') - T('scanned')), 'not scanned yet', T('orders') - T('scanned') > 0 ? 'warn' : 'ok')}</div>`;
+  h += '<h3>Day by day</h3>' + tbl(['Day', 'Live?', 'Vrich orders', 'Pieces', '💲 Sold', "Lines can't scan", 'Scanned', '💲 Shipped', 'With issues', 'Not scanned yet'],
+    D.map(x => [x.d, x.orders ? '🔴 live' : '—', x.orders, x.pcs || 0, x.orders ? V.money(x.sales) + (x.noPrice ? ' (' + fmt(x.noPrice) + ' pcs without price)' : '') + (x.partial ? ' (old list — incomplete)' : '') : '', x.bad || 0, x.scanned || 0, x.orders ? V.money(x.shipV || 0) : '', x.iss || 0, Math.max(0, x.orders - (x.scanned || 0))]));
+  h += '<h3>Scanned &amp; issues by who</h3>' + (W.length ? tbl(WHO_HEAD, W.map(whoRow)) : '<div class="mut">No shift submitted for these 6 days yet.</div>');
+  h += `<div class="mut" style="margin-top:8px">💲 Sold = Vrich order price × pieces of every order uploaded for that day (orders marked cancelled are not counted). 💲 Shipped = what the scanners packed (from the submitted shifts). Data older than ${V.KEEP_DAYS} days is deleted, so look at a cycle within a week.</div>`;
+  h += `<div class="row"><button id="sumcsv">⬇ Summary (CSV)</button></div>`;
+  el.innerHTML = h; wire();
+  $('sumcsv').onclick = () => csvDownload('summary-' + from + '_' + to + '.csv', ['Day', 'Vrich orders', 'Pieces', 'Sold', 'Pieces without price', "Lines can't scan", 'Scanned', 'Shipped', 'With issues', 'Not scanned yet'],
+    D.map(x => [x.d, x.orders, x.pcs || 0, x.sales || 0, x.noPrice || 0, x.bad || 0, x.scanned || 0, x.shipV || 0, x.iss || 0, Math.max(0, x.orders - (x.scanned || 0))]).concat(W.map(p => ['Scanner: ' + p.name, '', p.pcs, '', '', '', p.orders, p.val, p.iss, ''])));
 }
-$('sdate').value = V.today();
-$('sload').onclick = async () => {
-  const d = $('sdate').value; if (!d) return; $('sres').innerHTML = '<div class="mut">Loading…</div>';
-  try {
-    const S = await staffStats(d), names = Object.keys(S.per).sort();
-    if (!names.length) { $('sres').innerHTML = '<div class="mut">No scans saved for ' + esc(d) + '.</div>'; return; }
-    const mist = p => Math.max(0, p.wrong + p.dup - p.won - (p.qwon || 0)) + (p.qfree || 0), good = p => p.ok + p.loose + Math.max(0, (p.quirk || 0) - (p.qstaff || 0));
-    const pct = p => { const all = good(p) + mist(p); return all ? Math.round(good(p) / all * 1000) / 10 + '%' : '—'; };
-    $('sres').innerHTML = '<div class="mut">' + esc(d) + ' · ' + fmt(S.sessions) + ' order session(s)' + (S.at ? ' · counted ' + esc(V.when(S.at)) : '') + '.<br><b>Staff mistakes</b> = wrong item + duplicate (minus disputes the manager judged a catalog problem). <b>Catalog problems</b> = label not in PokPok / words don’t match — not the staff’s fault. <b>Stock</b> = held or shipped short. <b>Tech quirks</b> = items staff counted as “correct, system quirk” (confirmed / staff mistake / waiting) — a quirk the manager calls a staff mistake counts as a mistake. <b>Accuracy</b> = correct ÷ (correct + staff mistakes).</div>' +
-      tbl(['Staff', 'Orders', 'Completed', 'Correct', 'Staff mistakes', 'Catalog problems', 'Stock: held', 'Stock: shipped short', 'Approved (PIN)', 'Tech quirks (ok/staff/waiting)', 'Disputes (won/lost)', 'Accuracy'], names.map(n => { const p = S.per[n]; return [n, p.orders, p.complete, good(p), mist(p), p.unk + p.chk + p.won, p.hold, p.short, p.ovr, (p.quirk || p.qok || p.qstaff || p.qwait) ? (p.quirk || 0) + ' (' + p.qok + '/' + p.qstaff + '/' + p.qwait + ')' : '—', p.disputes ? p.disputes + ' (' + p.won + '/' + p.lost + ')' : '—', pct(p)]; }));
-  } catch (e) { $('sres').innerHTML = box('bad', esc(nice(e))); }
-};
-
-/* ---------- export: every scanned order + which ones went through the manager ---------- */
-const RESULT_TXT = { complete: 'Complete', short: 'Shipped short', hold: 'On hold / sent to manager', switched: 'Left unfinished', open: 'Unfinished', 'after-complete': 'Complete' };
-async function scanExport(from, to) {
-  const days = []; for (let d = from; d <= to && days.length < 32; d = V.dayShift(d, 1)) days.push(d);
-  const range = [['d', '>=', from], ['d', '<=', to]];
-  const [L, I, O] = await Promise.all([store.query(COL.log, range), store.query(COL.issues, range), store.query(COL.ovr, range)]);
-  const idx = {}, idxDays = [V.dayShift(from, -3), V.dayShift(from, -2), V.dayShift(from, -1), ...days];   // orders are often packed a few days after the order date
-  for (const d of idxDays) { try { const x = await store.get(COL.idx, d); Object.assign(idx, V.idxMap(x && x.o)); } catch (e) {} }
-  const M = new Map(), get = id => M.get(id) || M.set(id, { order: id, d: '', staff: new Set(), sessions: [], n: {}, mgr: [], sup: [], wait: false, fb: '' }).get(id);
-  L.forEach(({ data: x }) => { if (!x.order) return; const o = get(x.order); if (!o.d || x.d < o.d) o.d = x.d; if (x.staff) o.staff.add(x.staff); o.sessions.push(x); Object.keys(x.n || {}).forEach(r => { o.n[r] = (o.n[r] || 0) + x.n[r]; }); });
-  const who = s => String(s || '').replace(/ \(manager\)$/, '');
-  I.sort((a, b) => String(a.data.t).localeCompare(String(b.data.t))).forEach(({ data: i }) => {
-    if (!i.order) return; const o = get(i.order); if (!o.d) o.d = i.d; if (i.fb && !o.fb) o.fb = i.fb;
-    const miss = String(i.label || '').replace(/^(Missing|Shipped without): /, ''), snote = i.snote ? ' · staff note: ' + i.snote : '', mnote = i.mnote ? ' · manager note: ' + i.mnote : '';
-    if (i.type === 'shortreq') { o.mgr.push('Ship short request — WAITING for manager: ' + miss + snote); o.wait = true; }
-    else if (i.type === 'short') {
-      const by = i.approvedBy ? 'APPROVED by ' + who(i.approvedBy) + (i.staff ? ' (asked by ' + i.staff + ')' : '') : 'by supervisor PIN' + (i.sup ? ' (' + i.sup + ')' : '');
-      o.mgr.push('Ship short ' + by + ': ' + miss + snote + mnote + ' · Vrich ' + (i.vrichDone ? '✓' : '✗') + ' · customer told ' + (i.notified ? '✓' : '✗'));
-      if (i.status !== 'cleared') o.wait = true;
-    }
-    else if (i.type === 'incomplete' && i.rejectedAt) o.mgr.push('Ship short REJECTED: ' + String(i.expected || '').replace(/^Missing: /, '') + mnote);
-    else if (i.type === 'quirk') { const r = i.quirkResult === 'ok' ? 'confirmed' : i.quirkResult === 'staff' ? 'STAFF MISTAKE' : 'WAITING'; o.mgr.push('Tech quirk by ' + (i.staff || '?') + ': scanned ' + ((i.label || '') + ' ' + i.code).trim() + ' → counted for ' + (i.line || '') + ' ' + (i.lineDesc || '') + ' · staff note: ' + (i.reason || '') + ' · manager: ' + r); if (!i.quirkResult) o.wait = true; }
-    else if (i.type === 'allowed') o.mgr.push('Mixed (អីវ៉ាន់ចម្រុះ): packed ' + ((i.label || '') + ' ' + i.code).trim() + ' for ' + (i.line || '') + ' ' + (i.lineDesc || '') + ' (' + (i.staff || '?') + ')' + (i.status === 'cleared' ? ' · seen' : ''));
-    else if (i.disputed) { const r = i.disputeResult === 'catalog' ? 'catalog problem (staff right)' : i.disputeResult === 'staff' ? 'STAFF MISTAKE' : 'WAITING'; o.mgr.push('Dispute by ' + (i.disputeBy || i.staff || '?') + ': ' + ((i.label || '') + ' ' + i.code).trim() + ' · manager: ' + r); if (!i.disputeResult) o.wait = true; }
-    else if (i.status === 'cleared' && /\(manager\)$/.test(i.clearedBy || '')) o.mgr.push('Closed by manager (' + i.type + ', ' + (i.resolution || '') + ')' + (i.note ? ': ' + i.note : ''));
-    else if (i.status === 'cleared' && (i.resolution === 'mistake' || i.resolution === 'other')) o.sup.push('Issue closed by ' + (i.clearedBy || '?') + ' (' + i.resolution + ')' + (i.note ? ': ' + i.note : ''));
-  });
-  O.forEach(({ data: r }) => { if (!r.order) return; get(r.order).sup.push('PIN approve by ' + (r.sup || '?') + ': ' + ((r.scannedLabel || '') + ' ' + (r.scanned || '')).trim() + ' → ' + (r.line || '') + ' ' + (r.lineDesc || '') + (r.why ? ' (' + r.why + ')' : '')); });
-  const rows = [...M.values()].map(o => {
-    const S = o.sessions.slice().sort((a, b) => String(a.end || a.start).localeCompare(String(b.end || b.start)));
-    const res = S.some(s => s.result === 'short') ? 'short' : S.some(s => s.result === 'complete' || s.result === 'after-complete') ? 'complete' : S.length ? S[S.length - 1].result : '';
-    const e = idx[o.order] || {}, n = o.n;
-    return { o, through: o.mgr.length > 0, row: [o.d, o.order, e.f || o.fb || '', e.n || '', [...o.staff].join(', '), S.length, S.length ? V.when(S[0].start) : '', S.length ? V.when(S.map(s => s.end || s.start).sort().pop()) : '', RESULT_TXT[res] || res || '—',
-      (n.ok || 0) + (n.loose || 0), n.wrong || 0, n.dup || 0, n.unk || 0, n.chk || 0, n.ovr || 0, n.quirk || 0,
-      o.mgr.length ? 'YES' : '', o.mgr.length ? (o.wait ? 'Waiting' : 'Done') : '', o.mgr.join(' || '), o.sup.join(' || ')] };
-  }).sort((a, b) => (a.row[0] + a.row[1]).localeCompare(b.row[0] + b.row[1]));
-  return { rows, days, sessions: L.length };
-}
-const XHEAD = ['Date', 'Order', 'Customer', 'Items', 'Staff', 'Sessions', 'First scan', 'Last scan', 'Result', 'Correct', 'Wrong', 'Duplicate', 'Not in catalog', 'Check', 'PIN approved', 'Tech quirk', 'Through manager', 'Manager status', 'Manager steps', 'Supervisor steps'];
-$('xfrom').value = $('xto').value = V.today();
-$('xgo').onclick = async () => {
-  const from = $('xfrom').value, to = $('xto').value || from;
-  if (!from || to < from) { $('xinfo').textContent = 'Choose the dates'; return; }
-  if (V.dayShift(from, 31) <= to) { $('xinfo').textContent = 'At most 31 days at a time'; return; }
-  $('xinfo').textContent = 'Loading…'; $('xres').innerHTML = '';
-  try {
-    const X = await scanExport(from, to), R = X.rows, T = R.filter(r => r.through), cnt = k => R.filter(r => r.row[8] === k).length;
-    const name = (from === to ? from : from + '_to_' + to);
-    $('xinfo').textContent = fmt(X.sessions) + ' scan session(s) read';
-    $('xres').innerHTML = `<div class="sum">${cell(R.length, 'orders')}${cell(cnt('Complete'), 'complete', 'ok')}${cell(cnt('Shipped short'), 'shipped short', cnt('Shipped short') ? 'warn' : 'ok')}${cell(R.length - cnt('Complete') - cnt('Shipped short'), 'not finished', 'warn')}${cell(T.length, 'through manager', T.length ? 'bad' : 'ok')}${cell(T.filter(r => r.o.wait).length, 'still waiting for manager', T.some(r => r.o.wait) ? 'bad' : 'ok')}${cell(R.reduce((a, r) => a + r.row[9], 0), 'items scanned correct')}</div>` +
-      `<div class="row"><button class="pri" id="xall">⬇ All ${fmt(R.length)} orders (CSV)</button><button id="xmgr">⬇ Only the ${fmt(T.length)} through manager (CSV)</button></div>` +
-      (T.length ? '<h3>Orders that went through the manager</h3>' + tbl(['Date', 'Order', 'Customer', 'Staff', 'Result', 'Status', 'Manager steps'], T.slice(0, 300).map(r => [r.row[0], '#' + r.row[1], r.row[2], r.row[4], r.row[8], r.row[17], r.row[18]])) : '<div class="mut" style="margin-top:8px">No order went through the manager in these days.</div>');
-    $('xall').onclick = () => csvDownload('scans-' + name + '.csv', XHEAD, R.map(r => r.row));
-    $('xmgr').onclick = () => csvDownload('scans-through-manager-' + name + '.csv', XHEAD, T.map(r => r.row));
-  } catch (e) { $('xinfo').textContent = ''; $('xres').innerHTML = box('bad', esc(nice(e))); }
-};
+['ready', 'shift', 'sum', 'cat'].forEach(k => { $('t-' + k).onclick = () => { ['ready', 'shift', 'sum', 'cat'].forEach(x => { $('t-' + x).classList.toggle('on', x === k); $('p-' + x).classList.toggle('hide', x !== k); }); if (k === 'cat') drawCat(); if (k === 'shift') drawShifts(); if (k === 'sum') drawSummary(); }; });
 
 /* ---------- status ---------- */
 function drawStatus() {
@@ -1402,58 +1353,14 @@ $('supadd').onclick = async () => {
   try { await store.set(COL.meta, 'settings', { sup }, true); S.sup = sup; $('suppin').value = ''; $('supname').value = ''; $('supmsg').textContent = '✓ Saved'; drawSettings(); } catch (e) { $('supmsg').textContent = nice(e); }
 };
 
-/* ---------- automatic expiry of old open issues (13 Nov 2026) ----------
-   Issues close by themselves when staff finish the order, but some never get there (held orders packed another way,
-   ship-short steps nobody ticked, Mixed records nobody looked at). VH Shop had 2,841 open — every phone read them all.
-   Once a day (when this page opens) open issues past their age are closed as resolution 'expired', clearedBy 'auto (too old)'. */
-const EXPIRE = { allowed: 2, shortreq: 2, other: 7 };            // days
-async function autoExpire(force) {
-  if (!force && ST.settings && ST.settings.lastExpire === V.today()) return 0;
-  const docs = await store.query(COL.issues, [['status', '==', 'open']]), now = V.localNow();
-  const cut = days => V.dayShift(V.today(), -days) + 'T00:00:00';
-  const old = docs.filter(({ data: i }) => String(i.t || '') < cut(EXPIRE[i.type] || EXPIRE.other));
-  for (let k = 0; k < old.length; k += 400) await store.batch(old.slice(k, k + 400).map(({ id, data: i }) => ({ op: 'set', col: COL.issues, id, merge: true,
-    data: { status: 'cleared', clearedAt: now, clearedBy: 'auto (too old)', resolution: 'expired', note: 'Closed automatically: open more than ' + (EXPIRE[i.type] || EXPIRE.other) + ' days' } })));
-  await store.set(COL.meta, 'settings', { lastExpire: V.today() }, true); if (ST.settings) ST.settings.lastExpire = V.today();
-  ST.expired = { n: old.length, at: now };
-  return old.length;
-}
-/* ---------- 22 Nov 2026: close issues of orders that were packed after the issue ----------
-   A machine closes an order's issues when it scans the order complete, but before 1.3 that close was lost when the Wi-Fi
-   dropped or the page was reloaded, and "System is wrong?" issues never left the staff phones. Here, for every open issue,
-   the scan log is checked (scan_log, 30 orders per read): if the order was scanned complete / shipped short AFTER the issue,
-   the issue is closed ('completed', clearedBy 'auto (order packed)'); a "System is wrong?" issue stays open for the
-   manager but is marked done so phones stop showing it. Runs once a day when this page opens, and with the button. */
-async function closePacked(force) {
-  if (!force && ST.settings && ST.settings.lastPacked === V.today()) return 0;
-  const docs = await store.query(COL.issues, [['status', '==', 'open']]), now = V.localNow();
-  const skip = ['short', 'shortreq', 'quirk', 'allowed', 'repackreq'];
-  const cand = docs.filter(({ data: i }) => i.order && !skip.includes(i.type) && !(i.disputed && i.doneAt));
-  const orders = [...new Set(cand.map(d => String(d.data.order)))], packed = new Map();
-  for (let k = 0; k < orders.length; k += 30) {
-    const L = await store.query(COL.log, [['order', 'in', orders.slice(k, k + 30)]]);
-    L.forEach(({ data: x }) => { const end = x.end || x.start || ''; if ((x.result === 'complete' || x.result === 'short') && end > (packed.get(String(x.order)) || '')) packed.set(String(x.order), end); });
-  }
-  const ops = [];
-  cand.forEach(({ id, data: i }) => {
-    const end = packed.get(String(i.order)); if (!end || end < String(i.t || '')) return;          // not packed after this issue
-    if (i.disputed) ops.push({ op: 'set', col: COL.issues, id, merge: true, data: { doneAt: end } });
-    else ops.push({ op: 'set', col: COL.issues, id, merge: true, data: { status: 'cleared', clearedAt: now, clearedBy: 'auto (order packed)', resolution: 'completed', note: 'Order was scanned complete ' + V.when(end) } });
-  });
-  for (let k = 0; k < ops.length; k += 400) await store.batch(ops.slice(k, k + 400));
-  await store.set(COL.meta, 'settings', { lastPacked: V.today() }, true); if (ST.settings) ST.settings.lastPacked = V.today();
-  const n = ops.filter(o => o.data.status).length;
-  ST.packed = { n, hidden: ops.length - n, at: now };
-  return n;
-}
-
 /* ---------- clean-up: keep KEEP_DAYS days ---------- */
 async function cleanup() {
   const cut = V.dayShift(V.today(), -V.KEEP_DAYS), cutIso = cut + 'T00:00:00'; let n = 0;
   const old = await store.query(COL.idx, [['d', '<', cut]]);
   for (const d of old) { const ops = Object.keys(d.data.o || {}).map(id => ({ op: 'del', col: COL.orders, id })); ops.push({ op: 'del', col: COL.idx, id: d.id }); await store.batch(ops); n += ops.length; }
   for (let k = 0; k < 20; k++) { const L = await store.query(COL.log, [['d', '<', cut]], { limit: 400 }); if (!L.length) break; await store.batch(L.map(x => ({ op: 'del', col: COL.log, id: x.id }))); n += L.length; if (L.length < 400) break; }
-  for (const col of [COL.issues, COL.ovr]) for (let k = 0; k < 10; k++) { const L = (await store.query(col, [['t', '<', cutIso]], { limit: 400 })).filter(x => col !== COL.issues || x.data.status !== 'open'); if (!L.length) break; await store.batch(L.map(x => ({ op: 'del', col, id: x.id }))); n += L.length; if (L.length < 300) break; }
+  // 1.4: issues are no longer made — every issue older than KEEP_DAYS goes, open or not
+  for (const col of [COL.issues, COL.ovr]) for (let k = 0; k < 25; k++) { const L = await store.query(col, [['t', '<', cutIso]], { limit: 400 }); if (!L.length) break; await store.batch(L.map(x => ({ op: 'del', col, id: x.id }))); n += L.length; if (L.length < 400) break; }
   const oldDays = RD.list.filter(o => o.d < cut);       // day line lists for "Orders that can't scan"
   if (oldDays.length) { await store.batch(oldDays.map(o => ({ op: 'del', col: COL.meta, id: rdId(o.d) }))); RD.list = RD.list.filter(o => o.d >= cut); oldDays.forEach(o => delete RD.docs[o.d]); await saveDayIndex(); n += oldDays.length; }
   await store.set(COL.meta, 'settings', { lastCleanup: V.today() }, true); if (ST.settings) ST.settings.lastCleanup = V.today();
@@ -1480,19 +1387,7 @@ async function start() {
     await loadSettings(); await loadLinks();
   } catch (e) { $('status').innerHTML = box('bad', 'Could not read Firestore: ' + esc(nice(e))); return; }
   drawStatus(); drawReady(); if (RD.sel) openDay(RD.sel).then(() => { if (RD.list.some(o => o.stamp !== rdStamp())) syncDays(); });
-  try { await autoExpire(); } catch (e) { console.error('auto-expire', e); }
-  try { await closePacked(); } catch (e) { console.error('close packed', e); }
-  drawIssues();
-  // live: new ship-short requests show up without refreshing
-  let lastSig = '';
-  store.watchQuery(COL.issues, [['status', '==', 'open']], docs => {
-    if (!docs) return;
-    const rpk = docs.filter(d => d.data.type === 'repackreq').length, reqs = docs.filter(d => d.data.type === 'shortreq' && d.data.to !== 'sup').length, sreqs = docs.filter(d => d.data.type === 'shortreq' && d.data.to === 'sup').length, qk = docs.filter(d => d.data.type === 'quirk').length, al = docs.filter(d => d.data.type === 'allowed').length, sig = docs.map(d => d.id + d.data.type + (d.data.count || '')).join();
-    $('reqbanner').innerHTML = rpk || reqs || sreqs || qk || al ? box(rpk || reqs || qk ? 'bad' : 'warn', [rpk ? `🔁 <b>${rpk}</b> pack-again request(s) — order already packed` : '', reqs ? `⏳ <b>${reqs}</b> ship-short request(s) waiting for your approval` : '', sreqs ? `👤 <b>${sreqs}</b> waiting for a supervisor` : '', qk ? `⚡ <b>${qk}</b> technical quirk(s) to check` : '', al ? `✓ <b>${al}</b> item(s) packed as អីវ៉ាន់ចម្រុះ (mixed)` : ''].filter(Boolean).join(' · ') + ` — <a href="#" id="reqgo" style="color:inherit">open</a>`) : '';
-    if ($('reqgo')) $('reqgo').onclick = e => { e.preventDefault(); $('t-iss').click(); $('p-iss').scrollIntoView(); };
-    $('issn').textContent = docs.length ? '(' + docs.length + ')' : '';
-    if (sig !== lastSig) { lastSig = sig; const typing = document.activeElement && $('p-iss').contains(document.activeElement) && document.activeElement.tagName === 'INPUT'; if (!$('p-iss').classList.contains('hide') && !typing) drawIssues(); }
-  });
+  autoCleanup();          // once a day: everything older than KEEP_DAYS (7) days
 }
 if (!store) { $('nocfg').classList.remove('hide'); $('dot').className = 'dot bad'; }
 else {
