@@ -8,6 +8,8 @@
 <!-- VH Shop Scan Verify · manager upload page. Replaces the Catalog Cleaner: reads the PokPok product list, the Vrich stock export and the
      Vrich order export, cleans and checks them, and saves them to Firestore (catalogs as compressed chunks, orders one document each).
      Staff never open this page. Nothing here is committed to GitHub.
+     1.7 (25 Nov 2026): 🧮 Supply check (top link + card; Supply = Price × 0.77 exactly; scan_meta/supply + supply_ok),
+     🔗 Remove asks why (scan_meta/links_removed), late shifts (closed at 19:00, sent later) shown in 🧾 Scanners.
      1.4 (23-24 Nov 2026): issues are gone. Phones keep a shift list; "Submit shift" uploads ONE compressed document per shift
      (scan_log/shift_<id>, kind 'shift', order rows gzipped in z; deleted with the scan logs after 7 days). To fix now has
      🧾 Scanners (each scanner's orders + issues and why) and 📊 6-day summary (3 lives: Vrich orders + sales per day, scanned,
@@ -92,6 +94,36 @@ details summary{cursor:pointer;color:var(--mut);margin-top:8px}
 details.more>summary{color:var(--acc);font-weight:700;margin:6px 0}
 .card{box-shadow:0 1px 2px rgba(16,24,40,.04)}
 code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
+/* 1.7: 🧮 supply check */
+.toplink.sup{border-color:#fca5a5;background:#fff5f5;color:#b91c1c}
+.toplink .n{background:#dc2626;color:#fff;border-radius:99px;font-size:12px;padding:0 7px;margin-left:6px}
+#supcard{scroll-margin-top:76px}
+.suphead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}.suphead .src{margin-left:auto;text-align:right;font-size:13px;color:var(--mut)}
+.stiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0 8px}
+@media(max-width:820px){.stiles{grid-template-columns:repeat(2,1fr)}}
+.stile{display:block;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;min-height:0}
+.stile b{display:block;font-size:26px;line-height:1.1}.stile .t{display:block;font-weight:600;font-size:14px;margin-top:2px}.stile .k{display:block;color:var(--mut);font-size:12.5px}
+.stile.r b{color:#dc2626}.stile.a b{color:#d97706}.stile.g b{color:#94a3b8}
+.stile.on{border-color:var(--acc);background:#f2f6ff;box-shadow:0 0 0 3px #dbe6ff}
+.srow{display:grid;grid-template-columns:1.05fr 1.15fr 1.25fr .8fr auto;align-items:center;gap:14px;padding:12px 4px;border-top:1px solid var(--line)}
+@media(max-width:820px){.srow{grid-template-columns:1fr 1fr}}
+.srow .it b{font-size:16px}.srow .it small,.srow .si small{display:block;color:var(--mut);font-size:12.5px}.srow .si span{display:block;font-size:11.5px;color:var(--mut)}.srow .si small b{color:var(--tx)}
+.srow .cmp{display:flex;align-items:center;gap:10px}.srow .v{text-align:center}.srow .v span{display:block;font-size:11.5px;color:var(--mut)}.srow .v b{font-size:17px}
+.srow .v.ok b{color:#16a34a}.srow .v.bad b{color:#dc2626}.srow .ar{color:#b6c0cd}
+.spill{display:inline-block;border-radius:99px;padding:3px 10px;font-size:13px;font-weight:600;background:#fee2e2;color:#991b1b}.spill.a{background:#fef3c7;color:#92400e}
+.sgo{min-height:38px;font-size:14px;background:#fff;white-space:nowrap}
+/* 1.7: Yes/No window with a reason */
+.mwrap{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.mdl{width:100%;max-width:480px;background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.mdl h3{margin:0;font-size:18px}.mdl .km{color:var(--mut);margin:2px 0 12px}
+.mdl .msum{background:var(--card2);border-radius:10px;padding:9px 12px;font-size:14px;margin-bottom:12px}
+.mdl .rs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mdl .rs button{text-align:left;min-height:52px;line-height:1.25;padding:6px 12px;border-width:1.5px}
+.mdl .rs button small{display:block;color:var(--mut);font-size:12px}
+.mdl .rs button.on{border-color:var(--acc);background:#f2f6ff}
+.mdl input{width:100%;margin-top:10px}
+.mdl .yn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.mdl .err{color:#b91c1c;font-size:13px;min-height:18px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -100,6 +132,7 @@ code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
   <h1>VH Shop · Upload &amp; Fix list</h1>
   <a class="toplink" href="count.html" target="_blank" rel="noopener">🔢 Stock count</a>
   <a class="toplink" href="index.html" target="_blank" rel="noopener">📷 Scan page</a>
+  <a class="toplink sup" href="#supcard" id="suplink">🧮 Supply check<span class="n" id="supn" style="display:none"></span></a>
   <span id="who" class="mut"></span>
   <button id="logout" class="hide">Log out</button>
 </div>
@@ -138,6 +171,12 @@ code{background:#eef2f7;padding:1px 6px;border-radius:6px;font-size:13px}
         <div class="slot" id="slot-ord"><h3>3 · Vrich orders</h3><div class="mut">Vrich → Orders → Export (.xlsx, Sheet1 is read)</div>
           <label class="filebtn">Choose file…<input type="file" id="f-ord" accept=".xlsx,.xls,.csv" hidden></label><div id="r-ord"></div></div>
       </div>
+    </div>
+
+    <!-- ===== 🧮 Supply price check (1.7) ===== -->
+    <div class="card" id="supcard">
+      <div class="suphead"><div><h2 style="margin:0">🧮 Supply check · ពិនិត្យថ្លៃដើម</h2><div class="mut">Supply Price typed wrong in PokPok</div></div><div class="src" id="supsrc"></div></div>
+      <div id="supbody"><div class="mut">Loading…</div></div>
     </div>
 
     <!-- ===== 🗺 PokPok ↔ Vrich map (for the Stock Count page) ===== -->
@@ -441,6 +480,35 @@ const fmt = n => (n || 0).toLocaleString('en-US');
 /* ---------- small UI helpers ---------- */
 const cell = (n, label, cls) => `<div class="cell ${cls || ''}"><b>${typeof n === 'number' ? fmt(n) : esc(n)}</b><span>${esc(label)}</span></div>`;
 const box = (cls, html) => `<div class="box ${cls}">${html}</div>`;
+/* 1.7 (25 Nov 2026): Yes/No window with reason buttons + a note box (like the scanner). Resolves {why, label, note} or null (No).
+ * opt: {title, km, sum (html), reasons: [[key, 'English', 'ខ្មែរ']], other: key that needs a note, input: {type, ph} for a typed value} */
+function askWhy(opt) {
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className = 'mwrap';
+    w.innerHTML = `<div class="mdl" role="dialog"><h3>${esc(opt.title)}</h3><div class="km">${esc(opt.km || '')}</div>` + (opt.sum ? `<div class="msum">${opt.sum}</div>` : '') +
+      (opt.reasons ? `<div class="mut" style="margin-bottom:6px">Why · ហេតុអ្វី</div><div class="rs">${opt.reasons.map(r => `<button type="button" data-k="${esc(r[0])}">${esc(r[1])}<small>${esc(r[2] || '')}</small></button>`).join('')}</div>` : '') +
+      (opt.input ? `<input class="mval" type="${esc(opt.input.type || 'text')}" placeholder="${esc(opt.input.ph || '')}" autocomplete="off">` : '') +
+      (opt.reasons ? `<input class="mnote" placeholder="Note · កំណត់ចំណាំ${opt.other ? ' (needed for ' + esc((opt.reasons.find(r => r[0] === opt.other) || [])[1] || 'Other') + ')' : ' (optional)'}">` : '') +
+      `<div class="err"></div><div class="yn"><button type="button" class="pri myes">Yes · បាទ/ចាស</button><button type="button" class="mno">No · ទេ</button></div></div>`;
+    document.body.appendChild(w);
+    let pick = '';
+    const done = v => { w.remove(); document.removeEventListener('keydown', key); res(v); };
+    const key = e => { if (e.key === 'Escape') done(null); };
+    document.addEventListener('keydown', key);
+    w.querySelectorAll('.rs button').forEach(b => b.onclick = () => { pick = b.dataset.k; w.querySelectorAll('.rs button').forEach(x => x.classList.toggle('on', x === b)); });
+    w.querySelector('.mno').onclick = () => done(null);
+    w.onclick = e => { if (e.target === w) done(null); };
+    w.querySelector('.myes').onclick = () => {
+      const note = clean((w.querySelector('.mnote') || {}).value || ''), val = (w.querySelector('.mval') || {}).value || '', err = w.querySelector('.err');
+      if (opt.reasons && !pick) { err.textContent = 'Choose a reason first · សូមជ្រើសហេតុផលជាមុន'; return; }
+      if (opt.reasons && pick === opt.other && !note) { err.textContent = 'Write why in the note · សូមសរសេរហេតុផល'; return; }
+      if (opt.input && !val) { err.textContent = (opt.input.need || 'Fill it in') + ' · សូមបំពេញ'; return; }
+      const r = opt.reasons ? opt.reasons.find(x => x[0] === pick) : null;
+      done({ why: pick, label: r ? r[1] + ' · ' + r[2] : '', note, val });
+    };
+    setTimeout(() => { const f = w.querySelector('.mval') || w.querySelector('.myes'); f && f.focus(); }, 30);
+  });
+}
 function csvDownload(name, header, rows) {
   const c = v => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + [header, ...rows].map(r => r.map(c).join(',')).join('\r\n')], { type: 'text/csv' })); a.download = name; a.click();
@@ -798,7 +866,7 @@ $('f-pok').onchange = async e => {
     const D = diffPok(prev ? prev.records : [], A.recs);
     let fixed = null;
     if (ST.report && ST.report.problems && ST.report.problems.length) { const lines = linesFromProblems(ST.report.problems), R = readiness(lines, A.recs); fixed = { before: lines.length, still: R.problems.length, R }; }
-    SL.pok = { f, A, D, prev, fixed, partial }; drawPokSummary();
+    SL.pok = { f, A, D, prev, fixed, partial, rows }; drawPokSummary();
   } catch (err) { slotMsg('pok', box('bad', 'Could not read that file: ' + esc(err.message))); }
 };
 function diffPok(oldR, newR) {
@@ -841,6 +909,7 @@ async function uploadPok() {
     await syncDays();
     slotMsg('pok', box('ok', (SL.pok.partial ? `✓ Added ${fmt(D.added.length)}, updated ${fmt(D.changed.length + D.priced.length)} · ` : '') + `✓ Saved · ${fmt(info.count)} items · version ${esc(info.ver)}. Phones switch to it automatically.` + (fresh.length ? ` The first scan of each of the ${fmt(fresh.length)} new/changed item(s) asks staff to confirm the item.` : '')));
     drawStatus(); drawCat(); autoPublishMap();
+    try { await supRun(SL.pok.rows, f, SL.pok.partial); } catch (err) { SUP.err = 'Supply check: ' + nice(err); supDraw(); }      // 1.7 🧮
   } catch (err) { slotMsg('pok', box('bad', 'Not saved: ' + esc(nice(err)))); }
 }
 
@@ -975,7 +1044,10 @@ function drawReady() {
   $('rdcsv').onclick = () => csvDownload('cannot-scan-' + ((R.dates || [])[0] || V.today()) + '.csv', ['Order', 'Sale code', 'Stock code', 'Description', 'Qty'], (R.problems || []).map(s => s.split('\t')));
 }
 /* ---------- 🔗 manager links ---------- */
-async function loadLinks() { const d = await store.get(COL.meta, 'links'); ST.links = V.linksParse(d && d.txt); const l = await store.get(COL.meta, 'loose'); ST.loose = V.looseParse(l && l.txt); }
+async function loadLinks() { const d = await store.get(COL.meta, 'links'); ST.links = V.linksParse(d && d.txt); const l = await store.get(COL.meta, 'loose'); ST.loose = V.looseParse(l && l.txt);
+  try { const r = await store.get(COL.meta, 'links_removed'); ST.unlinked = (r && Array.isArray(r.list)) ? r.list : []; } catch (e) { ST.unlinked = []; } }
+/* 1.7 (25 Nov 2026): removing a 🔗 link asks why first; who / when / why are kept (scan_meta/links_removed, newest 200) */
+const UNLINK_WHY = [['wrong', 'Wrong match', 'ភ្ជាប់ខុស'], ['label', 'New label printed', 'ស្លាកថ្មី'], ['gone', 'Product finished', 'អស់ទំនិញ'], ['other', 'Other (write why)', 'ផ្សេងៗ']];
 /* ---------- ✓ Allow by code ---------- */
 async function saveLoose() { await store.set(COL.meta, 'loose', { txt: V.looseText(ST.loose), at: V.localNow(), by: ST.user.email }); }
 async function allowCode(code) {
@@ -991,7 +1063,9 @@ async function saveLinks() { await store.set(COL.meta, 'links', { txt: V.linksTe
 function linksHTML() {
   const L = [...ST.links.values()];
   if (!L.length) return '';
-  return `<details style="margin-top:12px"><summary>🔗 ${L.length} manager link(s) in use</summary>` + tbl(['PokPok code', 'Vrich stock code', 'By', 'When', ''], L.map(x => [x.pok, x.stock, (x.by || '').split('@')[0], V.when(x.at), '@@D' + x.pok])).replace(/<td>@@D([^<]*)<\/td>/g, (m, s) => `<td><button data-unlink="${s}" style="min-height:32px">Remove</button></td>`) + '</details>';
+  const U = ST.unlinked || [];
+  return (L.length ? `<details style="margin-top:12px"><summary>🔗 ${L.length} manager link(s) in use</summary>` + tbl(['PokPok code', 'Vrich stock code', 'By', 'When', ''], L.map(x => [x.pok, x.stock, (x.by || '').split('@')[0], V.when(x.at), '@@D' + x.pok])).replace(/<td>@@D([^<]*)<\/td>/g, (m, s) => `<td><button data-unlink="${s}" style="min-height:32px">Remove</button></td>`) + '</details>' : '') +
+    (U.length ? `<details style="margin-top:6px"><summary>🗑 ${U.length} removed link(s) · who, when, why</summary>` + tbl(['PokPok code', 'Vrich stock code', 'Why', 'Note', 'Removed by', 'When'], U.map(x => [x.pok, x.stock, x.label || x.why, x.note || '', (x.by || '').split('@')[0], V.when(x.at)])) + '</details>' : '');
 }
 function wireLinks() {
   document.querySelectorAll('[data-unloose]').forEach(b => b.onclick = async () => {
@@ -999,8 +1073,18 @@ function wireLinks() {
     ST.loose.delete(nz(b.dataset.unloose)); try { await saveLoose(); await syncDays(); } catch (e) { alert(nice(e)); }
   });
   document.querySelectorAll('[data-unlink]').forEach(b => b.onclick = async () => {
-    if (!confirm('Remove the link for ' + b.dataset.unlink + '? Phones stop using it at once.')) return;
-    ST.links.delete(nz(b.dataset.unlink)); try { await saveLinks(); await recheckAfterLinks(); } catch (e) { alert(nice(e)); }
+    const L = ST.links.get(nz(b.dataset.unlink)) || { pok: b.dataset.unlink, stock: '' };
+    const a = await askWhy({ title: 'Remove this 🔗 link?', km: 'លុបតំណភ្ជាប់នេះ? ទូរស័ព្ទឈប់ប្រើភ្លាម · Phones stop using it at once.',
+      sum: '<b>' + esc(L.pok) + '</b> → ' + esc(L.stock || '?'), reasons: UNLINK_WHY, other: 'other' });
+    if (!a) return;
+    const rec = { pok: L.pok, stock: L.stock || '', why: a.why, label: a.label, note: a.note, by: ST.user.email, at: V.localNow(), linkedBy: L.by || '', linkedAt: L.at || '' };
+    ST.links.delete(nz(b.dataset.unlink));
+    try {
+      await saveLinks();
+      ST.unlinked = [rec, ...(ST.unlinked || [])].slice(0, 200);
+      await store.set(COL.meta, 'links_removed', { list: ST.unlinked, at: rec.at, by: rec.by });
+      await recheckAfterLinks();
+    } catch (e) { alert(nice(e)); }
   });
 }
 async function recheckAfterLinks() { await syncDays(); autoPublishMap(); }      // Same words / 🔗 links changed: re-check every day
@@ -1181,6 +1265,163 @@ async function drawMap() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: 'application/json' })); a.download = 'vhshop-stock-map-' + stamp + '.json'; a.click();
   };
 }
+/* ---------- 🧮 Supply price check (1.7, 25 Nov 2026) ----------
+ * Finds PokPok Supply Prices typed wrong. Runs by itself when the PokPok list (slot 1) is saved; the 🧮 link at the top jumps here.
+ * Rule (user, 25 Nov): a new product is always a 30% markup, typed as Supply = Price × 0.77 EXACTLY (all decimals).
+ * 🆕 new: made in the last 7 days and Supply ≠ Price × 0.77 · ❌ typo / ⚠ check: same sale code + same day + same Price, one colour/size
+ * has another Supply (❌ when it is one digit off or ×10) · 🔁 changed later: Supply differs from the first one this page saw for the code ·
+ * ⬜ no supply: Price set, Supply empty. "Price then" = the right Supply ÷ 0.77 (or the remembered price), "Stock in" = PokPok Last Stock In.
+ * Firebase: scan_meta/supply = memory {code → first supply, first price, first day} gzipped (written once per PokPok save);
+ * scan_meta/supply_ok = the findings + the ✓ accepted rows (small; read when the page opens). Scan phones never read either. */
+const SUP_DEF = [
+  { f: 'code', req: true, label: 'Code', alias: ['code', 'product code', 'item code'] },
+  { f: 'name', req: true, label: 'Name', alias: ['name', 'product name'] },
+  { f: 'attrs', alias: ['attributes', 'attribute'] },
+  { f: 'price', req: true, label: 'Price', alias: ['price'] },
+  { f: 'sup', req: true, label: 'Supply Price', alias: ['supply price', 'cost', 'cost price'] },
+  { f: 'qty', alias: ['stock qty.', 'stock qty'] },
+  { f: 'made', alias: ['created date', 'created'] },
+  { f: 'lastin', alias: ['last stock in'] }
+];
+const SUP_K = 0.77, SUP_EPS = 0.0005, SUP_NEW_DAYS = 7;
+const SUP_WHY = [['real', 'Real cost', 'ថ្លៃដើមពិត'], ['newcost', 'New cost', 'ថ្លៃថ្មី'], ['sale', 'Sale price', 'បញ្ចុះតម្លៃ'], ['other', 'Other (write why)', 'ផ្សេងៗ']];
+const SUP_KIND = { new: ['🆕', 'New product', 'ផលិតផលថ្មី', 'r'], typo: ['❌', 'Likely typo', 'វាយលេខខុស', 'r'], check: ['⚠', 'Check', 'ថ្លៃដើមខុសគ្នា', 'a'], chg: ['🔁', 'Changed later', 'ប្តូរក្រោយ', 'a'], nosup: ['⬜', 'No supply', 'គ្មានថ្លៃដើម', 'g'] };
+const SUP_RULE = {
+  new: 'New product (made in the last 7 days) — Supply must be Price × 0.77 exactly (30% markup).',
+  typo: 'Same product, same day, same price — one colour/size is one digit off. The right one = Price × 0.77, else the most common.',
+  check: 'Same product, same day, same price — one colour/size has another Supply (more than 1% apart). Maybe a real cost difference.',
+  chg: 'The Supply Price is different from the first time this page saw the code.',
+  nosup: 'Price is set but Supply Price is empty.'
+};
+const SUP = { res: null, ok: [], tab: 'typo', q: '' };
+const r4 = n => Math.round(n * 10000) / 10000;
+const supKey = x => x.k + '|' + x.code + '|' + x.sup;
+// PokPok dates: "25/11/2026 12:50" text, or an Excel date number → "2026-11-25 12:50"
+function supDate(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number' && v > 20000) { const d = new Date(Math.round((v - 25569) * 864e5)); return d.toISOString().slice(0, 16).replace('T', ' '); }
+  const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') + (m[4] ? ' ' + m[4].padStart(2, '0') + ':' + m[5] : '');
+  const m2 = String(v).match(/(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); return m2 ? m2[1] + '-' + m2[2] + '-' + m2[3] + (m2[4] ? ' ' + m2[4] + ':' + m2[5] : '') : '';
+}
+const dmy = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+const supStr = n => String(+(+n).toFixed(6));
+// one digit missing / extra / changed, or ×10 / ÷10
+function supTypo(a, b) {
+  const x = supStr(a), y = supStr(b), del = (l, s) => l.length === s.length + 1 && [...l].some((_, i) => l.slice(0, i) + l.slice(i + 1) === s);
+  if (del(x, y) || del(y, x)) return true;
+  if (x.length === y.length && [...x].filter((c, i) => c !== y[i]).length === 1) return true;
+  const q = a / b; return Math.abs(q - 10) < .05 || Math.abs(q - .1) < .005;
+}
+function supHint(bad, right) {
+  const x = supStr(bad), y = supStr(right);
+  if (y.length === x.length + 1) { for (let i = 0; i < y.length; i++) if (y.slice(0, i) + y.slice(i + 1) === x) return '“' + y[i] + '” missing'; }
+  if (x.length === y.length + 1) { for (let i = 0; i < x.length; i++) if (x.slice(0, i) + x.slice(i + 1) === y) return '“' + x[i] + '” extra'; }
+  if (/^0\./.test(x) && !/^0\./.test(y) && y.length === x.length && y.slice(1) === x.slice(1)) return '“' + y[0] + '” missing';      // .311 typed for 3.311
+  if (x.length === y.length) { const i = [...x].findIndex((c, j) => c !== y[j]); if (i >= 0 && [...x].filter((c, j) => c !== y[j]).length === 1) return y[i] + ' ↔ ' + x[i]; }
+  const q = bad / right; if (Math.abs(q - 10) < .05) return '× 10'; if (Math.abs(q - .1) < .005) return '÷ 10';
+  return '';
+}
+function supRows(rows) {
+  const H = detectHeader(rows, SUP_DEF); if (!H.ok) return { err: 'Supply check: column(s) not found: ' + H.missing.join(', ') };
+  const g = (r, f) => H.map[f] == null ? '' : r[H.map[f]], out = [];
+  for (let i = H.row + 1; i < rows.length; i++) {
+    const r = rows[i] || [], code = clean(cellTxt(g(r, 'code'))); if (!code) continue;
+    const name = clean(cellTxt(g(r, 'name'))), price = num(g(r, 'price')), sup = num(g(r, 'sup'));
+    out.push({ code, name, sale: name.split(' ')[0] || '', attrs: clean(cellTxt(g(r, 'attrs')).replace(/-/g, ' ')), price: price || 0, sup: sup || 0, qty: num(g(r, 'qty')), made: supDate(g(r, 'made')), lastin: supDate(g(r, 'lastin')) });
+  }
+  return { rows: out };
+}
+// mem: Map code → [firstSup, firstPrice, firstDay]
+function supAnalyse(items, mem, today) {
+  const out = [], newFrom = V.dayShift(today, -(SUP_NEW_DAYS - 1));
+  const base = x => ({ code: x.code, sale: x.sale, attrs: x.attrs, name: x.name, sup: x.sup, price: x.price, qty: x.qty, made: x.made.slice(0, 10), lastin: x.lastin.slice(0, 10) });
+  items.forEach(x => {
+    if (x.price > 0 && !(x.sup > 0)) { out.push(Object.assign(base(x), { k: 'nosup', right: r4(x.price * SUP_K), then: x.price })); return; }
+    if (x.price > 0 && x.made && x.made.slice(0, 10) >= newFrom && Math.abs(x.sup - x.price * SUP_K) > SUP_EPS) {
+      const p0 = x.sup / SUP_K, nice = Math.abs(p0 - Math.round(p0 * 100) / 100) < 1e-6 && Math.abs(p0 - x.price) > .005;
+      out.push(Object.assign(base(x), { k: 'new', right: r4(x.price * SUP_K), then: x.price, hint: nice ? '= ' + V.money(Math.round(p0 * 100) / 100) + ' × 0.77' : '' }));
+    }
+    const m = mem.get(x.code);
+    if (m && x.sup > 0 && Math.abs(x.sup - m[0]) > SUP_EPS) out.push(Object.assign(base(x), { k: 'chg', right: m[0], then: m[1], first: m[2], hint: supHint(x.sup, m[0]) }));
+  });
+  const G = new Map();
+  items.forEach(x => { if (!(x.sup > 0 && x.price > 0 && x.made)) return; const k = x.sale + '|' + x.made.slice(0, 10) + '|' + x.price; (G.get(k) || G.set(k, []).get(k)).push(x); });
+  G.forEach(list => {
+    const cnt = new Map(); list.forEach(x => cnt.set(x.sup, (cnt.get(x.sup) || 0) + 1)); if (cnt.size < 2) return;
+    const p = list[0].price, exact = [...cnt.keys()].filter(v => Math.abs(v - p * SUP_K) <= SUP_EPS);
+    const right = exact.length === 1 ? exact[0] : [...cnt.entries()].sort((a, b) => b[1] - a[1] || Math.abs(a[0] - p * SUP_K) - Math.abs(b[0] - p * SUP_K))[0][0];
+    let then = r2(right / SUP_K); if (Math.abs(then - p) <= .0101) then = p;
+    list.forEach(x => { if (x.sup === right || Math.abs(x.sup - right) / right < .01) return; out.push(Object.assign(base(x), { k: supTypo(x.sup, right) ? 'typo' : 'check', right, then, hint: supHint(x.sup, right) })); });
+  });
+  return out;
+}
+async function supLoad() { try { const d = await store.get(COL.meta, 'supply_ok'); SUP.res = d && d.res ? d.res : null; SUP.ok = d && Array.isArray(d.ok) ? d.ok : []; } catch (e) { SUP.err = nice(e); } supDraw(); }
+async function supMem() { const d = await store.get(COL.meta, 'supply'); const m = new Map(); if (d && d.z) V.unpack(store.bytes(d.z)).forEach(a => m.set(a[0], [a[1], a[2], a[3]])); return m; }
+// called after the PokPok list is saved: compare, remember, publish the findings (2 writes)
+async function supRun(rows, file, partial) {
+  const R = supRows(rows); if (R.err) { SUP.err = R.err; supDraw(); return; }
+  const mem = await supMem(), today = V.today(), found = supAnalyse(R.rows, mem, today);
+  R.rows.forEach(x => { if (x.sup > 0 && !mem.has(x.code)) mem.set(x.code, [x.sup, x.price, today]); });
+  const inFile = new Set(R.rows.map(x => x.code));
+  const keep = partial && SUP.res ? (SUP.res.rows || []).filter(x => !inFile.has(x.code)) : [];
+  SUP.res = { file: file.name, at: V.localNow(), by: ST.user.email, n: R.rows.length, partial: !!partial, newOk: R.rows.filter(x => x.price > 0 && x.sup > 0 && x.made && x.made.slice(0, 10) >= V.dayShift(today, -(SUP_NEW_DAYS - 1)) && Math.abs(x.sup - x.price * SUP_K) <= SUP_EPS).length, rows: keep.concat(found) };
+  await store.set(COL.meta, 'supply', { z: store.blob(V.pack([...mem].map(([c, a]) => [c].concat(a)))), n: mem.size, at: SUP.res.at, by: SUP.res.by });
+  await supSaveOk();
+  supDraw();
+}
+async function supSaveOk() { await store.set(COL.meta, 'supply_ok', { res: SUP.res, ok: SUP.ok.slice(0, 2000), at: V.localNow() }); }
+function supOpen() {
+  const okk = new Set(SUP.ok.map(x => x.key));
+  return ((SUP.res && SUP.res.rows) || []).filter(x => !okk.has(supKey(x)));
+}
+function supDraw() {
+  const el = $('supbody'); if (!el) return;
+  const open = supOpen(), n = k => open.filter(x => x.k === k).length, red = n('new') + n('typo');
+  $('supn').textContent = red || ''; $('supn').style.display = red ? '' : 'none';
+  if (SUP.err && !SUP.res) { el.innerHTML = box('bad', esc(SUP.err)); return; }
+  if (!SUP.res) { el.innerHTML = '<div class="mut">Not checked yet — upload the PokPok list in slot 1 (the full export, with the Supply Price, Created Date and Last Stock In columns). The check runs when the list is saved.</div>'; return; }
+  const R = SUP.res;
+  $('supsrc').innerHTML = 'PokPok list · ' + esc(V.when(R.at)) + '<br>' + fmt(R.n) + ' lines checked' + (R.partial ? ' (search export)' : '');
+  let h = (SUP.err ? box('bad', esc(SUP.err)) : '') + '<div class="stiles">' + Object.keys(SUP_KIND).map(k => { const K = SUP_KIND[k]; return `<button class="stile ${K[3]}${SUP.tab === k ? ' on' : ''}" data-st="${k}"><b>${fmt(n(k))}</b><span class="t">${K[0]} ${esc(K[1])}</span><span class="k">${esc(K[2])}</span></button>`; }).join('') + '</div>';
+  h += `<div class="row"><input id="supq" placeholder="🔍 Search code or name" value="${esc(SUP.q)}" style="flex:1;min-width:200px" autocomplete="off"><button id="supcsv">⬇ CSV</button></div>`;
+  h += `<div class="mut" style="margin:10px 0 4px">${esc(SUP_RULE[SUP.tab])}${SUP.tab === 'new' && R.newOk != null ? ' · ✓ ' + fmt(R.newOk) + ' new product(s) right' : ''}</div>`;
+  if (SUP.tab !== 'new' && SUP.tab !== 'nosup' && SUP.tab !== 'chg') h += '<div class="mut">Price then = the price on the stock-in day (right supply ÷ 0.77). <span style="color:#d97706">Orange</span> = the price was lowered later.</div>';
+  if (SUP.tab === 'chg' && !n('chg')) h += '<div class="mut">From now on every code\'s first Supply Price is remembered; a later change shows here.</div>';
+  const terms = clean(SUP.q).toUpperCase().split(' ').filter(Boolean);
+  const list = open.filter(x => x.k === SUP.tab && (!terms.length || terms.every(t => (x.code + ' ' + x.name + ' ' + x.attrs).toUpperCase().includes(t))));
+  const lab = { new: ['should be', 'typed'], typo: ['others', 'this one'], check: ['others', 'this one'], chg: ['first', 'now'], nosup: ['should be', 'typed'] }[SUP.tab];
+  h += '<div class="srows">' + list.slice(0, 300).map(x => {
+    const low = x.then && x.price && Math.abs(x.then - x.price) > .005;
+    return `<div class="srow"><div class="it"><b>${esc(x.sale)}</b> <span>${esc(x.attrs || '—')}</span><small>${esc(x.code)} · stock ${x.qty == null ? '?' : fmt(x.qty)}${x.k === 'chg' ? ' · first seen ' + esc(dmy(x.first)) : ''}</small></div>` +
+      `<div class="si"><span>Stock in · ចូលស្តុក</span><b${x.lastin ? '' : ' style="color:#94a3b8"'}>${x.lastin ? esc(dmy(x.lastin)) : 'not yet'}</b><small>${x.lastin ? 'price then <b>' + esc(V.money(x.then)) + '$</b> · now <b' + (low ? ' style="color:#d97706"' : '') + '>' + esc(V.money(x.price)) + '$</b>' : 'made ' + esc(dmy(x.made)) + ' · price <b>' + esc(V.money(x.price)) + '$</b>'}</small></div>` +
+      `<div class="cmp"><div class="v ok"><span>${lab[0]}</span><b>${esc(supStr(x.right))}$</b></div><div class="ar">→</div><div class="v bad"><span>${lab[1]}</span><b>${x.k === 'nosup' ? '—' : esc(supStr(x.sup)) + '$'}</b></div></div>` +
+      `<div>${x.hint ? `<span class="spill${SUP_KIND[x.k][3] === 'r' ? '' : ' a'}">${esc(x.hint)}</span>` : ''}</div>` +
+      (x.k === 'nosup' ? '<div></div>' : `<button class="sgo" data-key="${esc(supKey(x))}">✓ ${x.k === 'chg' ? 'New price is right' : 'It\'s right'}</button>`) + '</div>';
+  }).join('') + (list.length > 300 ? `<div class="mut" style="padding:8px">… ${fmt(list.length - 300)} more (search, or ⬇ CSV)</div>` : '') + (!list.length ? '<div class="mut" style="padding:12px 4px">Nothing here ✓</div>' : '') + '</div>';
+  h += '<div class="mut" style="margin-top:8px">Fix the price in PokPok, then upload the list again — the row goes away by itself.</div>';
+  if (SUP.ok.length) h += `<details style="margin-top:6px"><summary>✓ ${fmt(SUP.ok.length)} accepted · who, when, why</summary>` + tbl(['Code', 'Item', 'Kind', 'Supply', 'Why', 'Note', 'By', 'When'], SUP.ok.slice(0, 300).map(x => [x.code, x.item || '', (SUP_KIND[x.k] || [''])[1] || x.k, x.sup, x.label || x.why, x.note || '', String(x.by || '').split('@')[0], V.when(x.at)])) + '</details>';
+  el.innerHTML = h;
+  el.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { SUP.tab = b.dataset.st; supDraw(); });
+  let qT; $('supq').oninput = e => { SUP.q = e.target.value; clearTimeout(qT); qT = setTimeout(() => { const p = e.target.selectionStart; supDraw(); const q = $('supq'); q.focus(); q.setSelectionRange(p, p); }, 250); };
+  $('supcsv').onclick = () => csvDownload('supply-check-' + V.today() + '.csv', ['Kind', 'Code', 'Sale code', 'Colour/size', 'Name', 'Made', 'Stock in', 'Price now', 'Price then', 'Right supply', 'Supply now', 'Hint', 'Stock'],
+    open.map(x => [SUP_KIND[x.k][1], x.code, x.sale, x.attrs, x.name, x.made, x.lastin, x.price, x.then, x.right, x.k === 'nosup' ? '' : x.sup, x.hint || '', x.qty == null ? '' : x.qty]));
+  el.querySelectorAll('.sgo').forEach(b => b.onclick = () => supAccept(b.dataset.key));
+}
+async function supAccept(key) {
+  const x = supOpen().find(r => supKey(r) === key); if (!x) return;
+  const a = await askWhy({ title: x.k === 'chg' ? 'The new Supply Price is right?' : 'Supply price is right?', km: 'ថ្លៃដើមនេះត្រឹមត្រូវមែនទេ?',
+    sum: `<b>${esc(x.sale)} ${esc(x.attrs)}</b> · ${esc(x.code)} · supply <b style="color:#dc2626">${esc(supStr(x.sup))}$</b> · ${x.k === 'chg' ? 'first' : x.k === 'new' ? 'should be' : 'others'} ${esc(supStr(x.right))}$` + (x.lastin ? `<br><span class="mut">Stock in ${esc(dmy(x.lastin))} · price then ${esc(V.money(x.then))}$ · now ${esc(V.money(x.price))}$</span>` : ''),
+    reasons: SUP_WHY, other: 'other' });
+  if (!a) return;
+  SUP.ok.unshift({ key, k: x.k, code: x.code, item: x.sale + ' ' + x.attrs, sup: x.sup, why: a.why, label: a.label, note: a.note, by: ST.user.email, at: V.localNow() });
+  try {
+    if (x.k === 'chg') { const mem = await supMem(); mem.set(x.code, [x.sup, x.price, V.today()]); await store.set(COL.meta, 'supply', { z: store.blob(V.pack([...mem].map(([c, v]) => [c].concat(v)))), n: mem.size, at: V.localNow(), by: ST.user.email }); }
+    await supSaveOk();
+  } catch (e) { SUP.ok.shift(); alert(nice(e)); }
+  supDraw();
+}
+
 $('mapgo').onclick = () => drawMap();
 /* ---------- 🧾 Scanners + 📊 6-day summary (1.4, 23-24 Nov 2026) ----------
  * "Submit shift" on a phone uploads ONE compressed document per shift into scan_log (id shift_<id>, kind 'shift'): the totals
@@ -1194,7 +1435,7 @@ const r2 = n => Math.round(n * 100) / 100;
 const SHC = {};          // shifts already read, by window (2 minutes)
 function decodeShift(id, x) {
   let rows = []; try { rows = V.unpack(store.bytes(x.z)); } catch (e) { console.warn('shift ' + id, e); }
-  return { id, device: x.device || '', start: x.start || '', end: x.end || '', d: x.d || '', staff: x.staff || '', n: x.n || 0, ok: x.ok || 0, iss: x.iss || 0, ship: x.ship || 0, pcs: x.pcs || 0, val: x.val || 0, x: x.miss || 0, unk: x.unk || '',
+  return { id, device: x.device || '', start: x.start || '', end: x.end || '', d: x.d || '', staff: x.staff || '', n: x.n || 0, ok: x.ok || 0, iss: x.iss || 0, ship: x.ship || 0, pcs: x.pcs || 0, val: x.val || 0, x: x.miss || 0, unk: x.unk || '', late: !!x.late, lateAt: x.lateAt || '', lateBy: x.lateBy || '',
     orders: rows.map(a => ({ o: String(a[0]), f: a[1] || '', r: a[2] || '', t: a[3] || '', s: a[4] || '', k: a[5] || '', w: a[6] || '', x: a[7] || 0, q: a[8] || 0, qs: a[9] || 0, v: a[10] || 0, vf: a[11] || 0, u: a[12] || '' })) };
 }
 async function loadShifts(from, to, fresh) {
@@ -1233,13 +1474,15 @@ async function drawShifts(fresh) {
   const unk = new Map(); L.forEach(S => String(S.unk || '').split(' ').filter(Boolean).forEach(c => unk.set(c, (unk.get(c) || 0) + 1)));
   let h = top + `<div class="sum">${cell(W.length, 'scanners')}${cell(last.length, 'orders scanned', 'ok')}${cell(ship.length, 'orders shipped', 'ok')}${cell(ship.reduce((a, x) => a + (x.qs || 0), 0), 'pcs shipped')}${cell(V.money(r2(ship.reduce((a, x) => a + (x.v || 0), 0))), '💲 shipped (Vrich price)', 'ok')}${cell(bad.length, 'with issues', bad.length ? 'bad' : 'ok')}</div>`;
   if (!L.length) { el.innerHTML = h + '<div class="mut">No shift submitted for these days yet.</div>'; wireShifts(); return; }
+  const late = L.filter(S => S.late);
+  if (late.length) h += box('warn', `<b>🔒 ${late.length} shift(s) submitted late</b> (not submitted by 19:00, sent later from the phone)<br>` + late.map(S => esc(S.staff) + ' · ' + esc(V.when(S.start).slice(5)) + ' → ' + esc(V.when(S.end).slice(5)) + ' · submitted ' + esc(V.when(S.lateAt).slice(5)) + (S.lateBy ? ' by ' + esc(S.lateBy) : '') + ' · ' + S.n + ' order(s)').join('<br>'));
   h += `<div class="row"><input id="shq" placeholder="🔎 Find an order: order #, customer, reason…" style="flex:1;min-width:220px" autocomplete="off"><span class="mut" id="shqn"></span><button id="shcsv1">⬇ All orders (CSV)</button></div>`;
   const who = x => x.staff || '(no name)';
   SHW.who = W.map(p => ({ name: p.name, list: last.filter(x => who(x) === p.name) }));
   SHW.who.forEach((G, i) => {
     const p = W[i], mineBad = G.list.filter(shIssue);
     const shifts = L.filter(S => S.orders.some(x => (x.s || S.staff || '(no name)') === p.name)).sort((x, y) => String(x.start).localeCompare(String(y.start)))
-      .map(S => esc(V.when(S.start).slice(5)) + ' → ' + esc(V.when(S.end).slice(11)) + (S.device ? ' <span class="mut">(📱' + esc(S.device) + ')</span>' : '')).join(' · ');
+      .map(S => esc(V.when(S.start).slice(5)) + ' → ' + esc(V.when(S.end).slice(11)) + (S.device ? ' <span class="mut">(📱' + esc(S.device) + ')</span>' : '') + (S.late ? ' <span class="tag bad">🔒 late (after 19:00)</span>' : '')).join(' · ');
     const kinds = [['⏸ Hold', p.hold], ['📦 Ship short', p.short], ['🔁 Pack again', p.repack], ['⚡ Quirk', p.quirk], ['⚠ Not finished', p.open], ['✗ Scans not counted', p.miss]].filter(k => k[1]).map(k => k[0] + ' <b>' + fmt(k[1]) + '</b>').join(' · ');
     h += `<div class="slot" style="margin-top:16px"><h3 style="margin:0;font-size:18px">👤 ${esc(p.name)}</h3><div class="mut">Shift${p.shifts > 1 ? 's' : ''}: ${shifts}</div>` +
       `<div class="sum">${cell(p.orders, 'orders scanned', 'ok')}${cell(p.pcs, 'pcs shipped')}${cell(V.money(p.val), '💲 shipped', 'ok')}${cell(p.iss, 'with issues', p.iss ? 'bad' : 'ok')}</div>` +
@@ -1384,7 +1627,7 @@ async function start() {
   try {
     ST.meta = (await store.get(COL.cat, 'meta')) || {};
     await loadDays();
-    await loadSettings(); await loadLinks();
+    await loadSettings(); await loadLinks(); supLoad();
   } catch (e) { $('status').innerHTML = box('bad', 'Could not read Firestore: ' + esc(nice(e))); return; }
   drawStatus(); drawReady(); if (RD.sel) openDay(RD.sel).then(() => { if (RD.list.some(o => o.stamp !== rdStamp())) syncDays(); });
   autoCleanup();          // once a day: everything older than KEEP_DAYS (7) days
