@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>VH Shop Scan</title>
-<!-- 23 Nov 2026 (1.4): 🧾 SHIFT LIST instead of issues. Nothing is stored in scan_issues any more and nothing needs a manager or a
+<!-- 25 Nov 2026 (1.7): ⏰ SHIFT ENDS AT 19:00 — reminder banner + sound at 18:30; at 19:00 the open shift is closed (after the order on the
+     screen) and kept on the phone; 🔒 Submit closed shift sends it marked late (late/lateAt/lateBy). Every submit: Yes/No, then a
+     10-second bar with ✕ Cancel (no password). The 📋 Log tab is removed (scans CSV + upload line are on the Data tab). Picture box: no Telegram link (copy the order number, search the pictures group).
+     24-25 Nov 2026 (1.6 → 1.7): 🖼 PICTURE WITH RED NOTE for a ship-short order. No Telegram link is read or saved (security):
+     in the 💬 message box staff copy the order number, search it in the Telegram pictures group, save the picture and choose it here;
+     the phone adds a red band on top ("A01 ណុតលុយសល់ 15$") and Shares it.
+     24 Nov 2026 (1.5): 💬 SHIP-SHORT MESSAGE for the customer. After 📦 Ship short (staff tap the missing code(s) and ×qty) the phone writes
+     the Messenger text: every missing code with its Vrich price (code + price only, no ×), and the money to note (all missing pieces added),
+     money as 15$. Staff can edit it, then 📋 Copy or 📤 Share. It stays on the shift list (🧾 Shift → 💬 Message) until the shift is submitted.
+     The message is kept on the phone only (not uploaded).
+     23 Nov 2026 (1.4): 🧾 SHIFT LIST instead of issues. Nothing is stored in scan_issues any more and nothing needs a manager or a
      supervisor PIN: hold, ship short, pack again and ⚡ quirk only ask for a reason. Every order scanned in the shift is one line on the
      phone (🧾 Shift tab: order #, items, price total, issue and why). "Submit shift" uploads the list straight to the upload page:
      ONE compressed document per shift (scan_log/shift_<id>, kind 'shift', the order rows gzipped in field z) — no files, no chat.
@@ -124,6 +134,15 @@ section{display:none}section.on{display:block}
 .iss .how{margin-top:6px;font-size:14px;color:#475569}.iss .disp{margin-top:6px;padding:6px 10px;border-radius:10px;background:#fef3c7;color:#92400e;font-weight:700}
 .iss.short,.iss.shortreq{border-left-color:#0ea5e9}.iss.repackreq,.iss.repackok{border-left-color:#a78bfa}.iss.repackreq .tag,.iss.repackok .tag{color:#6d28d9}.iss.shortreq .tag{color:#0369a1}.iss.short .tag{color:#0369a1}
 .iss .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.iss .btns button{min-height:42px}
+/* 1.5: 💬 ship-short message for the customer */
+.cmbox{margin-top:10px;background:#eff6ff;border:2px solid #3b82f6;border-radius:var(--r);padding:12px}.cmbox h3{margin:0 0 4px;font-size:17px}
+.cmbox textarea.cmta{font-family:inherit;font-size:17px;line-height:1.6;min-height:150px;margin-top:8px;background:#fff}
+.cmbox .cmwarn{margin-top:6px;padding:6px 10px;border-radius:10px;background:#fef3c7;color:#92400e;font-weight:700}.cmbox .cmwarn:empty{display:none}
+.cmbox .row button{min-height:52px;font-size:17px}
+/* 1.6: 🖼 picture with red note */
+.cmpic{margin-top:12px;padding-top:10px;border-top:1px dashed #93c5fd}.cmpic h3{margin:0 0 4px;font-size:16px}
+.cmbtn{display:inline-flex;align-items:center;justify-content:center;flex:1;min-height:52px;padding:0 12px;border:1px solid var(--acc);border-radius:12px;background:var(--acc);color:#fff;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer;text-align:center}
+.cmbtn.alt{background:#fff;color:var(--acc)}.cmprev{display:block;max-width:100%;max-height:60vh;margin:10px auto 0;border:1px solid var(--line);border-radius:10px}.cmpmsg{margin-top:6px}.cmbox .cmcopy{flex:1;background:var(--ok);border-color:#16a34a;color:#fff;font-weight:700}.cmbox .cmnote{margin-top:6px;font-weight:700;color:#166534}
 #act .reasons{display:grid;gap:6px;margin-top:8px}#act .reasons button{text-align:left;padding:8px 12px}#act .reasons button.sel{background:var(--acc);border-color:var(--acc);color:#fff}
 .iss .ready{margin-top:6px;padding:6px 10px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:700}
 .iss .a{display:flex;gap:8px;margin-top:10px}.iss .a input{flex:1;min-width:0}
@@ -149,6 +168,16 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
 .sumg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sumg>div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center;font-size:13px;color:var(--mut);line-height:1.3}
 .sumg b{display:block;font-size:28px;color:var(--tx)}
 .orow{display:flex;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}.orow .c{flex:1;min-width:0}.orow .r{white-space:nowrap;font-weight:700}.orow .i{flex-basis:100%;color:#92400e;font-size:13px}.orow.tot{font-weight:700;border-bottom:0}.sumg .g b{color:#15803d}.sumg .r b{color:#b91c1c}
+#shbanner{position:sticky;top:0;z-index:7;display:none;padding:10px 14px;font-weight:700;font-size:16px;line-height:1.35;cursor:pointer;text-align:center}
+#shbanner.warn{display:block;background:#f59e0b;color:#1f1300}#shbanner.lock{display:block;background:#dc2626;color:#fff}
+.pwm{position:fixed;inset:0;z-index:30;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.pwm .b{width:100%;max-width:400px;background:#fff;border-radius:16px;padding:18px 20px;display:grid;gap:10px}
+.pwm h3{margin:0;font-size:18px}.pwm input{width:100%;font-size:20px;text-align:center}.pwm .er{color:#b91c1c;font-weight:700;min-height:20px}
+.pwm .yn{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pwm .yn button{min-height:52px;font-size:17px}
+.sendbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 78px);z-index:25;background:#16202e;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.sendbar .r{display:flex;align-items:center;gap:10px}.sendbar .r b{flex:1;font-size:15px;line-height:1.3}.sendbar .r b span{font-weight:400;font-size:13px;opacity:.8}
+.sendbar button{background:#fff;color:#16202e;border:0;border-radius:10px;min-height:46px;padding:0 14px;font-weight:800}
+.sendbar .bar{height:8px;background:#334155;border-radius:99px;margin-top:10px;overflow:hidden}.sendbar .bar i{display:block;height:100%;width:100%;background:#22c55e;border-radius:99px}
 #overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
 #overlay .box{width:100%;max-width:360px;text-align:center;display:grid;gap:12px}
 #overlay h2{margin:0;font-size:20px}
@@ -172,6 +201,7 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
   <button id="cam">📷</button>
   <button id="mute">🔊</button>
 </div>
+<div id="shbanner"></div>
 
 <main>
   <!-- ============ SCAN ============ -->
@@ -185,6 +215,7 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
     <div id="reader"></div>
     <div id="status">Ready · រង់ចាំស្កេន Order</div>
     <div id="act"></div>
+    <div id="cmsg"></div>
     <div class="card" id="ordercard" style="display:none">
       <div class="ohead"><b id="ordertitle"></b><span class="btns"><button id="shipshort" style="display:none">📦 Ship short</button><button id="hold">⏸ Hold</button><button id="reset">Next ⟲</button></span></div>
       <div class="mut" id="ordersub"></div>
@@ -195,13 +226,14 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
 
   <!-- ============ SHIFT ============ -->
   <section id="tab-shift">
+    <div class="card" id="shclosed" style="display:none"></div>
     <div class="card">
-      <h2>🧾 This shift · វេននេះ</h2>
+      <h2>🧾 This shift · វេននេះ<span id="shfrom"></span></h2>
       <div id="shsum"></div>
       <div id="shlist"></div>
       <details class="plist" id="shalld" open><summary>📋 Order list · បញ្ជី Order (order # · items · total · issue)</summary><div id="shall"></div></details>
       <div class="row" style="margin-top:14px"><button class="pri" id="shsubmit" style="flex:1;min-height:56px;font-size:18px">✅ Submit shift · បញ្ចប់វេន</button></div>
-      <div class="mut" style="margin-top:6px">At the end of your shift: the list goes straight to the manager page and this phone starts a new, empty shift.</div>
+      <div class="mut" style="margin-top:6px" id="shhelp">At the end of your shift: the list goes straight to the manager page and this phone starts a new, empty shift. The shift ends at <b>19:00</b> (reminder at 18:30) · វេនបញ្ចប់ម៉ោង ៧ យប់ — a shift not submitted by 19:00 is closed and sent later marked late.</div>
     </div>
     <div class="card" id="shlast" style="display:none"></div>
   </section>
@@ -219,16 +251,13 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
   </section>
 
   <!-- ============ LOG ============ -->
-  <section id="tab-log">
-    <div class="card"><h2>Today on this device · ថ្ងៃនេះ</h2><div id="stats"></div></div>
-    <div class="card"><h2>Recent scans</h2><div id="log"></div>
-      <div class="row"><button id="export">⬇ Scans on this device (CSV)</button></div>
-      <div class="mut" id="qinfo" style="margin-top:6px"></div>
-    </div>
-  </section>
-
   <!-- ============ DATA ============ -->
   <section id="tab-data">
+    <div class="card">
+      <h2>Scans on this phone · ការស្កេន</h2>
+      <div class="mut" id="qinfo"></div>
+      <div class="row"><button id="export">⬇ Scans on this phone (CSV)</button></div>
+    </div>
     <div class="card">
       <h2>Stock count · រាប់ស្តុក</h2>
       <div class="mut">Count stock by scanning labels; export, print or save the size chart as a picture.</div>
@@ -249,7 +278,7 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
         <textarea id="fbcfg" placeholder='const firebaseConfig = { apiKey: "...", projectId: "..." };'></textarea>
         <div class="row"><button id="fbsave">Save &amp; connect</button><button id="fboff">Back to built-in</button></div>
       </details>
-      <div class="mut" style="margin-top:10px">VH Shop Scan Verify 1.4</div>
+      <div class="mut" style="margin-top:10px">VH Shop Scan Verify 1.6</div>
     </div>
   </section>
 </main>
@@ -258,7 +287,6 @@ nav button.on{background:var(--card2);color:var(--tx);border-color:var(--line)}
   <button data-tab="scan" class="on"><b>📦</b>Scan</button>
   <button data-tab="shift"><b>🧾</b>Shift<span id="badge" class="badge" data-n="0"></span></button>
   <button data-tab="lists"><b>🔎</b>Lists</button>
-  <button data-tab="log"><b>📋</b>Log</button>
   <button data-tab="data"><b>⚙</b>Data</button>
 </nav>
 
@@ -558,7 +586,6 @@ function showTab(n) {
   if (n === 'scan') focusScan();
   if (n === 'lists') renderLists();
   fbState();
-  if (n === 'log') renderLog();
   if (n === 'data') renderData();
   window.scrollTo(0, 0);
 }
@@ -590,6 +617,8 @@ function render(expect) {
  * download it, and clears the phone for the next shift. */
 const KIND = { hold: '⏸ On hold · ផ្អាក', short: '📦 Shipped short · ផ្ញើដោយខ្វះ', repack: '🔁 Packed again · វេចខ្ចប់ម្តងទៀត', quirk: '⚡ System quirk · ប្រព័ន្ធខុស' };
 const RES_SH = { complete: '✓ Complete', short: '📦 Shipped short', hold: '⏸ On hold', open: '⚠ Not finished', cancelled: '⛔ Cancelled' };
+let cmsgOid = '';          // 1.5: the order whose 💬 customer message is open on the Scan tab
+const cmOpen = new Set();  // 1.5: orders whose 💬 message is open on the Shift tab
 let SHIFT = LS.get('shift', null);          // {id, start, orders:{oid:{t, fb, staff, res, notes:[{k, txt, t, staff}], wrong, dup, chk, unk:[], miss}}}
 // submitted shifts of the last KEEP_DAYS days, newest first ({...report, sent, saved}) — the file can be sent again
 let SENT = (L => { const cut = V.dayShift(V.today(), -KEEP_DAYS); return (Array.isArray(L) ? L : []).filter(R => R && R.d >= cut).slice(0, 30).map(R => { if (R.up) delete R.orders; return R; }); })(LS.get('shifts', []));
@@ -626,7 +655,8 @@ const ISS_CLS = { hold: 'incomplete', short: 'short', open: 'wrong', cancelled: 
 let shAll = false;          // "Show all" on the order list
 function renderShift() {
   const L = shRows(SHIFT), bad = L.filter(hasIssue);
-  $('badge').textContent = bad.length || ''; $('badge').dataset.n = bad.length;
+  $('badge').textContent = (bad.length + CLOSED.length) || ''; $('badge').dataset.n = bad.length + CLOSED.length;
+  shBanner();
   if (!$('tab-shift').classList.contains('on')) return;          // the lists are drawn only when the Shift tab is open (1,000+ orders)
   const now = L.filter(scanningNow).length, miss = L.reduce((a, e) => a + missOf(e), 0);
   $('shsum').innerHTML = `<div class="sumg"><div><b>${L.length}</b>Orders scanned<br>ស្កេនរួច</div><div class="g"><b>${L.length - bad.length - now}</b>Complete OK<br>ត្រឹមត្រូវ</div><div class="${bad.length ? 'r' : ''}"><b>${bad.length}</b>With issues<br>មានបញ្ហា</div></div>` +
@@ -635,7 +665,8 @@ function renderShift() {
     `<div class="iss ${ISS_CLS[e.res] || 'check'}"><div class="h"><span class="tag">${esc(RES_SH[e.res] || e.res)}</span><b>#${esc(e.order)}</b><span class="mut">${esc(e.fb || '')}</span></div>` +
     `<div class="mut">${esc(e.t.slice(11, 16))} · ${esc(e.staff || '')}</div>` +
     (e.notes.length ? e.notes.map(n => `<div class="e">${esc(KIND[n.k] || n.k)}: ${esc(n.txt)}</div>`).join('') : `<div class="e">${esc(whyOf(e))}</div>`) +
-    (e.res === 'hold' || e.res === 'open' ? `<div class="btns"><button class="opn" data-o="${esc(e.order)}">📦 Open order</button></div>` : '') + '</div>').join('')
+    (e.res === 'hold' || e.res === 'open' ? `<div class="btns"><button class="opn" data-o="${esc(e.order)}">📦 Open order</button></div>` : '') +
+    (e.miss && e.miss.length ? (cmOpen.has(e.order) ? msgBox(e.order) : `<div class="btns"><button class="cmo" data-o="${esc(e.order)}">💬 Message for the customer · សារផ្ញើភ្ញៀវ</button></div>`) : '') + '</div>').join('')
     : (L.length ? '<div class="mut" style="padding:12px 0">No issues this shift 🎉</div>' : '');
   $('shalld').style.display = L.length ? '' : 'none';
   const ship = L.filter(e => shipped(e.res));
@@ -643,7 +674,13 @@ function renderShift() {
   $('shall').innerHTML = rows.map(e => `<div class="orow"><span class="c"><b>#${esc(e.order)}</b> <span class="mut">${esc(e.fb || '')} · ${esc(e.t.slice(11, 16))}</span></span><span class="r">${esc(pcsTxt(e.q, e.qs))}${e.q ? ' · ' : ''}${scanningNow(e) ? 'scanning…' : esc(totTxt(e.res, e.q, e.v, e.vf))} ${scanningNow(e) ? '' : hasIssue(e) ? '⚠' : '✓'}</span>${hasIssue(e) ? `<span class="i">${esc(whyOf(e) || RES_SH[e.res] || '')}</span>` : ''}</div>`).join('') +
     (L.length > SHOW && !shAll ? `<div class="row"><button id="shmore">Show all ${L.length} orders · បង្ហាញទាំងអស់</button></div>` : '') +
     (L.length ? `<div class="orow tot"><span class="c">Total shipped · សរុប</span><span class="r">${ship.length} order(s) · ${ship.reduce((a, e) => a + (e.qs || 0), 0)} pcs · 💲${esc(V.money(r2(ship.reduce((a, e) => a + (e.v || 0), 0))))}</span></div>` : '');
-  $('shsubmit').disabled = !L.length;
+  $('shsubmit').disabled = !L.length || !!sending; $('shsubmit').parentNode.style.display = L.length && !(sending && sending.key === 'shift') ? '' : 'none';
+  $('shfrom').textContent = SHIFT ? ' (from ' + SHIFT.start.slice(11, 16) + ')' : '';
+  $('shclosed').style.display = CLOSED.length ? '' : 'none';
+  $('shclosed').innerHTML = CLOSED.length ? `<h2>🔒 Closed shift${CLOSED.length > 1 ? 's' : ''} · វេនបិទហើយ</h2><div class="mut">Not submitted before ${SHIFT_END}. It is safe on this phone — send it now; it is marked late.</div>` +
+    CLOSED.map((S, i) => { const R = shiftReport(S), go = sending && sending.key === 'c:' + S.id; return `<div class="iss wrong"${go ? ' style="opacity:.55"' : ''}><div class="h"><span class="tag">${go ? '⏳ SENDING' : '🔒 CLOSED ' + esc(SHIFT_END)}</span><b>${esc(V.when(S.start).slice(5))} → ${esc(V.when(S.closedEnd).slice(5))}</b></div>` +
+      `<div class="mut">${esc(R.staff)} · ${R.n} order(s) · ${R.iss} with issues · ${R.pcs || 0} pcs · 💲${esc(V.money(R.val || 0))}</div>` +
+      (go ? '' : `<div class="btns"><button class="pri shlate" data-i="${i}" style="flex:1;min-height:50px"${sending ? ' disabled' : ''}>✅ Submit closed shift · ដាក់ជូនវេនបិទ</button></div>`) + '</div>'; }).join('') : '';
   if ($('shmore')) $('shmore').onclick = () => { shAll = true; renderShift(); };
   $('shlast').style.display = SENT.length ? '' : 'none'; if (!SENT.length) return;
   const wait = SENT.filter(R => !R.up).length;
@@ -655,18 +692,98 @@ function renderShift() {
 }
 function shiftReport(S) {
   const L = shRows(S), bad = L.filter(isIssue), sum = k => L.reduce((a, e) => a + (e[k] || 0), 0);
-  return { id: S.id, d: S.start.slice(0, 10), start: S.start, end: localNow(), device: DEVICE, staff: [...new Set(L.map(e => e.staff).filter(Boolean))].join(', ') || staffName(),
+  return { id: S.id, d: S.start.slice(0, 10), start: S.start, end: S.closedEnd || localNow(), device: DEVICE, staff: [...new Set(L.map(e => e.staff).filter(Boolean))].join(', ') || staffName(),
     n: L.length, ok: L.length - bad.length, iss: bad.length, ship: L.filter(e => shipped(e.res)).length, pcs: L.filter(e => shipped(e.res)).reduce((a, e) => a + (e.qs || 0), 0), val: r2(L.filter(e => shipped(e.res)).reduce((a, e) => a + (e.v || 0), 0)), wrong: sum('wrong'), dup: sum('dup'), chk: sum('chk'), unk: [...new Set([].concat(...L.map(e => e.unk || [])))].join(' '),
     orders: L.map(e => ({ o: e.order, f: e.fb || '', r: e.res, t: e.t, s: e.staff || '', k: [...new Set(e.notes.map(n => n.k))].join(','), w: whyOf(e), x: missOf(e), q: e.q || 0, qs: e.qs || 0, v: e.v || 0, vf: e.vf || 0, u: (e.unk || []).join(' ') })) };
 }
-function submitShift() {
+/* ---------- ⏰ shift ends at 19:00 (1.7, 25 Nov 2026) ----------
+ * 18:30: a big reminder (banner + sound). 19:00: the open shift is closed (when no order is half-scanned) and kept on the phone;
+ * scans after that go into a new shift. A closed shift is sent with 🔒 Submit closed shift (Yes/No + 10-second bar) and marked late.
+ * Every submit: Yes / No, then a 10-second bar with ✕ Cancel (user, 25 Nov: no password). */
+const SHIFT_END = '19:00', REMIND_MIN = 30;
+let CLOSED = (L => Array.isArray(L) ? L.filter(S => S && S.orders) : [])(LS.get('shclosed', []));
+const saveClosed = () => LS.set('shclosed', CLOSED);
+// a shift started before 19:00 ends at 19:00 that day; started after 19:00 → 19:00 the next day
+function shDeadline(S) { const d = S.start.slice(0, 10), t = S.start.slice(11, 16); return (t >= SHIFT_END ? V.dayShift(d, 1) : d) + 'T' + SHIFT_END + ':00.000'; }
+const minusMin = (iso, m) => new Date(Date.parse(iso + 'Z') - m * 60000).toISOString().replace('Z', '');
+function shBanner() {
+  const b = $('shbanner'); if (!b) return;
+  const has = SHIFT && Object.keys(SHIFT.orders).length, now = localNow();
+  if (CLOSED.length) { b.className = 'lock'; b.innerHTML = '🔒 ' + CLOSED.length + ' closed shift' + (CLOSED.length > 1 ? 's' : '') + ' not submitted — tap to send<br>វេនបិទហើយ មិនទាន់ដាក់ជូន'; }
+  else if (has && now >= minusMin(shDeadline(SHIFT), REMIND_MIN)) { b.className = 'warn'; b.innerHTML = '⏰ Shift ends at 19:00 — finish and ✅ Submit shift<br>វេនបញ្ចប់ម៉ោង ៧ យប់ — សូមបញ្ចប់ ហើយចុច Submit'; }
+  else { b.className = ''; b.innerHTML = ''; }
+}
+$('shbanner').onclick = () => showTab('shift');
+function shTick() {
+  if (!SHIFT) { shBanner(); return; }
+  const has = Object.keys(SHIFT.orders).length, now = localNow(), end = shDeadline(SHIFT);
+  if (has && !SHIFT.rem && now >= minusMin(end, REMIND_MIN) && now < end) { SHIFT.rem = 1; LS.set('shift', SHIFT); sBad(); setTimeout(sOk, 700); buzz([300, 120, 300, 120, 300]); }
+  if (now >= end) {
+    if (cur && isUnfinished()) { shBanner(); return; }          // let staff finish the order on the screen first
+    if (has) { SHIFT.closedEnd = end; CLOSED.push(SHIFT); saveClosed(); }
+    if (cur) { hideAct(); sessEnd('complete'); cur = null; render(); setStatus('', 'Ready · រង់ចាំស្កេន Order'); }
+    SHIFT = null; shAll = false; cmOpen.clear(); hideMsg(); LS.del('shift'); log = []; LS.set('scanlog', log);
+    renderShift(); renderLog();
+    if (has) { sBad(); buzz([400, 150, 400]); }
+    return;
+  }
+  shBanner();
+}
+// Yes / No window (1.7: no password any more)
+function askYes(title, sub) {
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className = 'pwm';
+    w.innerHTML = `<div class="b"><h3>${esc(title)}</h3><div class="mut">${sub}</div><div class="yn"><button class="pri pwy">Yes · បាទ/ចាស</button><button class="pwn">No · ទេ</button></div></div>`;
+    document.body.appendChild(w);
+    const done = v => { w.remove(); res(v); };
+    w.querySelector('.pwy').onclick = () => done(true); w.querySelector('.pwn').onclick = () => done(false);
+    w.onclick = e => { if (e.target === w) done(false); };
+  });
+}
+// after Yes: a 10-second bar; ✕ Cancel, or the phone locking / leaving the page, stops it and nothing is sent
+const SEND_SEC = 10;
+let sending = null;
+function countdown(label, key) {
+  return new Promise(res => {
+    if (sending) { res(false); return; }
+    const w = document.createElement('div'); w.className = 'sendbar';
+    w.innerHTML = `<div class="r"><b>⏳ ${esc(label)} in <span class="sec">${SEND_SEC}</span> s…<br><span>កំពុងផ្ញើ · tap Cancel to stop</span></b><button class="cx">✕ Cancel · បោះបង់</button></div><div class="bar"><i></i></div>`;
+    document.body.appendChild(w);
+    const t0 = Date.now(), bar = w.querySelector('.bar i'), sec = w.querySelector('.sec');
+    const stop = ok => { clearInterval(iv); document.removeEventListener('visibilitychange', vis); w.remove(); sending = null; renderShift(); res(ok); };
+    const vis = () => { if (document.visibilityState === 'hidden') stop(false); };
+    const iv = setInterval(() => { const left = SEND_SEC * 1000 - (Date.now() - t0); if (left <= 0) { stop(true); return; } bar.style.width = (left / (SEND_SEC * 10)) + '%'; sec.textContent = Math.ceil(left / 1000); }, 100);
+    w.querySelector('.cx').onclick = () => { stop(false); sOk(); };
+    document.addEventListener('visibilitychange', vis);
+    sending = { stop, key }; renderShift();
+  });
+}
+async function submitClosed(i) {
+  const S = CLOSED[i]; if (!S || sending) return;
+  const R = shiftReport(S);
+  if (!(await askYes('Submit the closed shift? · ដាក់ជូនវេនបិទ?', esc(V.when(S.start).slice(5)) + ' → ' + esc(V.when(S.closedEnd).slice(11)) + ' · ' + esc(R.staff) + ' · ' + R.n + ' order(s) · ' + R.iss + ' with issues<br>It goes to the manager page marked <b>late</b> (after ' + SHIFT_END + ').'))) return;
+  if (!(await countdown('Sending the closed shift', 'c:' + S.id))) return;
+  const j = CLOSED.findIndex(x => x.id === S.id); if (j < 0) return;
+  const rep = shiftReport(S); rep.late = { at: localNow(), by: staffName() };
+  SENT.unshift(rep); SENT = SENT.slice(0, 30); LS.set('shifts', SENT);
+  CLOSED.splice(j, 1); saveClosed(); renderShift(); pushShifts(); sOk();
+}
+$('shclosed').onclick = e => { const b = e.target.closest('.shlate'); if (b) submitClosed(+b.dataset.i); };
+setInterval(shTick, 20000);
+async function submitShift() {
+  if (isUnfinished()) { alert('Finish or ⏸ hold order #' + cur.id + ' first.'); showTab('scan'); return; }
+  if (!SHIFT || !Object.keys(SHIFT.orders).length) return;
+  if (localNow() >= shDeadline(SHIFT)) { shTick(); alert('It is after ' + SHIFT_END + ' — this shift is closed. Send it with 🔒 Submit closed shift (marked late). · វេនបិទហើយ'); return; }
+  if (sending) return;
+  const pre = shiftReport(SHIFT);
+  if (!(await askYes('Submit this shift? · បញ្ចប់វេន?', pre.n + ' order(s) scanned · ' + pre.iss + ' with issues<br>The list goes to the manager page and this phone is cleared for the next shift.'))) return;
+  if (!(await countdown('Submitting the shift', 'shift'))) return;
   if (isUnfinished()) { alert('Finish or ⏸ hold order #' + cur.id + ' first.'); showTab('scan'); return; }
   if (!SHIFT || !Object.keys(SHIFT.orders).length) return;
   const rep = shiftReport(SHIFT);
-  if (!confirm(`Submit this shift? · បញ្ចប់វេន?\n\n${rep.n} order(s) scanned · ${rep.iss} with issues\n\nThe list goes to the manager page and this phone is cleared for the next shift.`)) return;
   SENT.unshift(rep); SENT = SENT.slice(0, 30); LS.set('shifts', SENT);
   if (cur) { hideAct(); sessEnd('complete'); cur = null; render(); setStatus('', 'Ready · រង់ចាំស្កេន Order'); }
-  SHIFT = null; shAll = false; LS.del('shift'); log = []; LS.set('scanlog', log);
+  SHIFT = null; shAll = false; cmOpen.clear(); hideMsg(); LS.del('shift'); log = []; LS.set('scanlog', log);
   renderShift(); renderLog(); pushShifts();
 }
 /* ---------- upload: ONE compressed document per shift (about 5-10 KB for 300 orders) ----------
@@ -674,7 +791,7 @@ function submitShift() {
  * pcs ordered, pcs packed, total packed, order total, codes not in PokPok] are gzipped into z. */
 let pushing = false, shiftErr = '';
 const shiftDoc = R => ({ kind: 'shift', d: R.d, start: R.start, end: R.end, device: R.device, staff: R.staff, n: R.n, ok: R.ok, iss: R.iss, ship: R.ship || 0, pcs: R.pcs || 0, val: R.val || 0,
-  miss: (R.wrong || 0) + (R.dup || 0) + (R.chk || 0), unk: R.unk || '', z: store.blob(V.pack(R.orders.map(x => [x.o, x.f, x.r, x.t, x.s, x.k, x.w, x.x, x.q, x.qs, shipped(x.r) ? x.v : 0, x.vf, x.u || '']))) });
+  miss: (R.wrong || 0) + (R.dup || 0) + (R.chk || 0), unk: R.unk || '', late: R.late ? 1 : 0, lateAt: R.late ? R.late.at : '', lateBy: R.late ? R.late.by : '', z: store.blob(V.pack(R.orders.map(x => [x.o, x.f, x.r, x.t, x.s, x.k, x.w, x.x, x.q, x.qs, shipped(x.r) ? x.v : 0, x.vf, x.u || '']))) });
 async function pushShifts() {
   const todo = SENT.filter(R => !R.up);
   if (!store || !online || pushing || !todo.length) return; pushing = true;
@@ -682,7 +799,7 @@ async function pushShifts() {
   catch (e) { shiftErr = /permission/i.test(e.code || e.message || '') ? 'Firebase refused it — tell the manager' : (e.code || e.message); }
   finally { pushing = false; renderShift(); }
 }
-$('shlist').onclick = e => { const b = e.target.closest('.opn'); if (b) { showTab('scan'); handleScan(b.dataset.o); } };
+$('shlist').onclick = e => { const b = e.target.closest('.opn'); if (b) { showTab('scan'); handleScan(b.dataset.o); } const m = e.target.closest('.cmo'); if (m) { cmOpen.add(m.dataset.o); renderShift(); } };
 $('shsubmit').onclick = submitShift;
 
 /* ---------- scan log: one document per order session (not per scan) ---------- */
@@ -702,14 +819,7 @@ async function flushLog() {
 function renderQ() { const n = Object.keys(logq).length - (sess && logq[sess.id] ? 1 : 0); $('qinfo').textContent = n > 0 ? n + ' order log(s) waiting to be saved online' : 'All order logs saved online ✓'; }
 setInterval(() => { if (sess && sess.scans.length && Date.now() - tms(sess.end) > 180000) { logq[sess.id] = sess; } flushLog(); pushShifts(); }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && sess && sess.scans.length) { const s = sess; logq[s.id] = s; LS.set('logq', logq); if (store && online) store.set(COL.log, s.id, s).catch(() => {}); } });
-function renderLog() {
-  const today = localNow().slice(0, 10), L = log.filter(x => x.t.slice(0, 10) === today), per = {};
-  L.forEach(x => { const k = x.staff || '(no name)'; per[k] = per[k] || { ok: 0, bad: 0, dup: 0, chk: 0, ovr: 0, qk: 0 }; if (x.r === 'short' || x.r === 'hold') return; if (x.r === 'quirk') { per[k].qk++; return; } per[k][x.r === 'ok' || x.r === 'loose' ? 'ok' : x.r === 'dup' ? 'dup' : x.r === 'ovr' ? 'ovr' : x.r === 'chk' || x.r === 'unk' ? 'chk' : 'bad']++; });
-  $('stats').innerHTML = Object.keys(per).map(k => `<div class="staffrow"><b>${esc(k)}</b><span><span class="pill" style="background:#dcfce7;color:#166534">✓ ${per[k].ok}</span><span class="pill" style="background:#fee2e2;color:#991b1b">✗ ${per[k].bad}</span><span class="pill" style="background:#ede9fe;color:#5b21b6">🔁 ${per[k].dup}</span>${per[k].chk ? `<span class="pill" style="background:#fef3c7;color:#92400e">⚠ ${per[k].chk}</span>` : ''}${per[k].ovr ? `<span class="pill" style="background:#dbeafe;color:#1e40af">🔑 ${per[k].ovr}</span>` : ''}${per[k].qk ? `<span class="pill" style="background:#fef3c7;color:#92400e">⚡ ${per[k].qk}</span>` : ''}</span></div>`).join('') || '<div class="mut">No scans yet today.</div>';
-  const ic = { quirk: '⚡', ok: '✅', loose: '✅', dup: '🔁', ovr: '🔑', chk: '⚠', unk: '❓', wrong: '❌' };
-  $('log').innerHTML = L.slice(-40).reverse().map(x => `<div class="lg"><span class="t">${esc(x.t.slice(11, 16))}</span><span class="c">#${esc(x.order)} · ${esc(x.code)}</span><span>${ic[x.r] || '❌'}</span></div>`).join('') || '<div class="mut">—</div>';
-  renderQ();
-}
+function renderLog() { renderQ(); }          // 1.7: the 📋 Log tab is gone (the Shift tab lists every order); the scans stay for the CSV
 function record(r, code, extra) {
   const e = { t: localNow(), staff: $('staff').value.trim(), order: cur ? cur.id : '', code, r, ...(extra || {}) };
   log.push(e); if (log.length > 1500) log = log.slice(-1500);
@@ -843,7 +953,7 @@ function repackConfirm() {
   startOrder(a.order);
 }
 async function startOrder(oid) {
-  pendingNext = null; hideAct();
+  pendingNext = null; hideAct(); if (cmsgOid !== oid) hideMsg();
   const o = orders[oid];
   if (o.st === 'c') { if (SHIFT && SHIFT.orders[oid]) shResult(oid, 'cancelled'); cur = null; render(); setStatus('stop', '⛔ ORDER CANCELLED · Order ត្រូវបានលុប', `#${esc(oid)} was cancelled in Vrich — <b>do not pack</b>. Put the items back.`); sBad(); buzz([200, 80, 200]); return; }
   if (cur) { sessEnd('switched'); cur = null; render(); }
@@ -857,7 +967,7 @@ async function startOrder(oid) {
   sessStart(oid); cur = { id: oid, scanned: o.items.map(() => 0), short: o.items.map(() => 0) };
   const e = shOrder(oid); shCount(oid);
   if (e.res !== 'complete' && e.res !== 'short' && e.miss && e.miss.length) applyMiss(o, e.miss);     // ship short chosen earlier in this shift
-  else e.miss = [];
+  else { e.miss = []; delete e.cmsg; }
   e.res = 'open'; shSave();
   render();
   if (ok) { setStatus('warn', '🔁 PACK AGAIN · #' + oid, 'Reason: ' + esc(ok.why || '') + '<br>Scan every item again.'); sWarn(); buzz([60, 40, 60]); }
@@ -967,7 +1077,7 @@ function showShort() {
 // the ticked items: [{i, code, stock, desc, n}] + readable text
 function pickedMiss(a) {
   const o = orders[a.order];
-  const miss = Object.keys(a.pick).map(Number).sort((x, y) => x - y).map(i => { const it = o.items[i], sel = $('act').querySelector(`select[data-n="${i}"]`); return { i, code: it.code, stock: it.stock || '', desc: itemLabel(it), n: sel ? +sel.value : 1 }; });
+  const miss = Object.keys(a.pick).map(Number).sort((x, y) => x - y).map(i => { const it = o.items[i], sel = $('act').querySelector(`select[data-n="${i}"]`); return { i, code: it.code, stock: it.stock || '', desc: itemLabel(it), n: sel ? +sel.value : 1, p: V.linePrice(it) }; });
   return miss.length ? { miss, text: missText(o, miss) } : null;
 }
 function shortOk() {
@@ -977,11 +1087,141 @@ function shortOk() {
   hideAct();
   const o = orders[a.order], e = shOrder(a.order);
   e.miss = (e.miss || []).concat(M.miss); shNote(a.order, 'short', why + ' · without: ' + M.text);
+  e.cmsg = shortMsg(a.order); shSave();
   applyMiss(o, M.miss); record('short', '(ship short)'); render();
   if (orderDone()) { finishOrder(); setStatus('done', '📦 SHIP SHORT ✓ · ORDER COMPLETE · #' + a.order, 'Pack and ship without: <b>' + esc(M.text) + '</b><br>It is on the shift list.' + scannedTotal(o)); sDone(); }
   else { setStatus('warn', '📦 SHIP SHORT ✓ · #' + a.order, 'Leave out: <b>' + esc(M.text) + '</b><br>Now scan the other items · ស្កេនទំនិញផ្សេងទៀត<br>' + expectedText(o)); sOk(); render(true); }
+  showMsg(a.order);
   focusScan();
 }
+
+/* ---------- 💬 ship-short message for the customer (1.5, 24 Nov 2026) ----------
+ * "សួស្តីបងសម្រាប់កូដ [code] [price] ប្អូនសុំណូតលុយសល់ [price] …" — one message listing every missing code of the order:
+ * code + Vrich price per piece only (no ×; a code missing 2 pieces is written twice), then the money to note (all missing pieces added).
+ * Money is written 15$. Staff may edit the text before copying; the edited text is kept on the shift entry (e.cmsg). */
+const CM_HEAD = 'សួស្តីបងសម្រាប់កូដ ', CM_MID = ' ប្អូនសុំណូតលុយសល់ ', CM_END = ' ដោយសារខាងប្អូនរាប់ចំនួនខុស ប្អូនសូមអត្យាស្រ័យនិងការយោគយល់ពីបងផង 🙏';
+const usd = p => V.money(p) + '$';
+// the missing codes of an order: [{code, p, n}] (same code + same price added together), total to note, codes without a price
+function shortParts(oid) {
+  const e = SHIFT && SHIFT.orders[oid], o = orders[oid]; if (!e || !e.miss || !e.miss.length) return null;
+  const by = {}, list = [];
+  e.miss.forEach(m => {
+    const it = o && o.items[m.i] && nz(o.items[m.i].code) === nz(m.code) ? o.items[m.i] : null;
+    const p = m.p != null ? m.p : it ? V.linePrice(it) : null, k = nz(m.code) + '|' + p;
+    if (!by[k]) list.push(by[k] = { code: m.code, p, n: 0 });
+    by[k].n += m.n || 1;
+  });
+  return { list, total: r2(list.reduce((a, x) => a + (x.p || 0) * x.n, 0)), noP: list.filter(x => x.p == null).map(x => x.code) };
+}
+function shortMsg(oid) {
+  const P = shortParts(oid); if (!P) return '';
+  // just code + price, no calculation: a code missing 2 pieces is written twice (A01 15$, A01 15$)
+  const each = [].concat(...P.list.map(x => Array.from({ length: x.n }, () => x.code + (x.p != null ? ' ' + usd(x.p) : ''))));
+  return CM_HEAD + each.join(', ') + CM_MID + usd(P.total) + CM_END;
+}
+function msgBox(oid, closeTxt) {
+  const e = SHIFT && SHIFT.orders[oid]; if (!e || !e.miss || !e.miss.length) return '';
+  const P = shortParts(oid), txt = e.cmsg || shortMsg(oid);
+  return `<div class="cmbox" data-o="${esc(oid)}"><h3>💬 Message for the customer · សារផ្ញើភ្ញៀវ · #${esc(oid)}</h3>` +
+    `<div class="mut">${esc(e.fb || '')}${e.fb ? ' · ' : ''}Check it, edit if needed, then copy it into Messenger · ពិនិត្យ កែបាន រួចចម្លងទៅ Messenger</div>` +
+    `<textarea class="cmta" spellcheck="false">${esc(txt)}</textarea>` +
+    `<div class="cmwarn">${P && P.noP.length ? '⚠ No price for ' + esc(P.noP.join(', ')) + ' — write the price in the text · គ្មានតម្លៃ សូមសរសេរតម្លៃ' : ''}</div>` +
+    `<div class="row"><button class="cmcopy">📋 Copy · ចម្លង</button>${navigator.share ? '<button class="cmshare">📤 Share · ផ្ញើ</button>' : ''}</div>` +
+    `<div class="row"><button class="cmreset">↺ Write again · សរសេរឡើងវិញ</button><button class="cmclose">${esc(closeTxt || '✕ Close · បិទ')}</button></div><div class="cmnote"></div>` + picBox(oid) + `</div>`;
+}
+function showMsg(oid) { const h = msgBox(oid); cmsgOid = h ? oid : ''; $('cmsg').innerHTML = h; }
+function hideMsg() { cmsgOid = ''; $('cmsg').innerHTML = ''; }
+
+/* ---------- 🖼 picture with red note (1.6; 1.7 25 Nov 2026: no Telegram link) ----------
+ * Nothing about Telegram is read or saved (no link, chat or message id — user, 25 Nov: security). Staff copy the order number,
+ * search it in the Telegram pictures group (Print Tools writes "Order 2605777" / "2605777 + 2605778" in every picture caption),
+ * save the picture, choose it here; the phone adds the red band on top ("A01 ណុតលុយសល់ 15$") and Shares it. */
+const NOTEPIC = {};      // order → {url, blob, msg} the picture made on this phone
+const tgSearch = oid => String(oid);      // just the number: also finds merged orders ("2605777 + 2605778")
+function picBox(oid) {
+  const N = NOTEPIC[oid];
+  return `<div class="cmpic"><h3>🖼 Picture with red note · រូបភាពមានចំណាំក្រហម</h3>` +
+    `<div class="mut">① Search the order in the Telegram pictures group and save the picture · ② Choose it here · ③ Share it in Messenger</div>` +
+    `<div class="row"><button class="cmsearch cmbtn alt" data-q="${esc(tgSearch(oid))}">① Copy “${esc(tgSearch(oid))}” → search in Telegram · ចម្លងលេខ</button></div>` +
+    `<div class="row"><label class="cmbtn alt">② Choose the saved picture · ជ្រើសរូប<input type="file" accept="image/*" class="cmfile" style="display:none"></label></div>` +
+    `<div class="cmpmsg mut">${N ? N.msg : ''}</div>` + (N ? `<img class="cmprev" src="${N.url}" alt="">` : '') +
+    `<div class="row cmpbtns" style="${N ? '' : 'display:none'}"><button class="cmpshare cmcopy">③ 📤 Share picture · ផ្ញើរូប</button><button class="cmpsave">💾 Save</button></div></div>`;
+}
+const boxesOf = oid => [...document.querySelectorAll('.cmbox')].filter(b => b.dataset.o === oid);
+const KH_FONT = "'Noto Sans Khmer','Khmer Sangam MN','Khmer MN','Khmer OS',sans-serif";
+// the band text: the missing code(s) and the money to note, e.g. "A01 ណុតលុយសល់ 15$"
+function noteText(oid) { const P = shortParts(oid); if (!P) return ''; return [...new Set(P.list.map(x => x.code))].join(', ') + ' ណុតលុយសល់ ' + usd(P.total); }
+async function makeNotePic(oid, file) {
+  const url0 = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('not a picture')); i.src = url0; });
+    try { await document.fonts.load(`700 24px 'Noto Sans Khmer'`); } catch (e) {}
+    const W = img.naturalWidth, H = img.naturalHeight, kb = W / 340, band = Math.round(54 * kb), txt = noteText(oid);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + band;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 0, W, band);
+    let fs = 24 * kb; ctx.font = `700 ${fs}px ${KH_FONT}`;
+    while (ctx.measureText(txt).width > W * .92 && fs > 10 * kb) { fs -= kb; ctx.font = `700 ${fs}px ${KH_FONT}`; }
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, W / 2, band / 2 + fs * .05);
+    ctx.drawImage(img, 0, band);
+    const msg = '✓ Red note added. Check it is the picture of order #' + esc(oid) + '. · សូមពិនិត្យថាជារូបរបស់ការកម្មង់នេះ';
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', .9));
+    if (NOTEPIC[oid]) URL.revokeObjectURL(NOTEPIC[oid].url);
+    NOTEPIC[oid] = { blob, url: URL.createObjectURL(blob), msg };
+  } finally { URL.revokeObjectURL(url0); }
+}
+const picFile = oid => new File([NOTEPIC[oid].blob], 'VHS_' + oid + '_note.jpg', { type: 'image/jpeg' });
+document.addEventListener('change', async ev => {
+  const f = ev.target.closest && ev.target.closest('.cmfile'); if (!f || !f.files || !f.files[0]) return;
+  const box = f.closest('.cmbox'), oid = box.dataset.o, m = box.querySelector('.cmpmsg');
+  m.textContent = '⏳ Making the picture…';
+  try { await makeNotePic(oid, f.files[0]); boxesOf(oid).forEach(b => { const old = b.querySelector('.cmpic'); if (old) old.outerHTML = picBox(oid); }); }
+  catch (e) { m.textContent = '✗ ' + (e.message || e); }
+});
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest && ev.target.closest('.cmsearch, .cmpshare, .cmpsave'); if (!b) return;
+  const box = b.closest('.cmbox'), oid = box.dataset.o, m = box.querySelector('.cmpmsg');
+  if (b.classList.contains('cmsearch')) {
+    const ok = await copyText(b.dataset.q, box.querySelector('.cmta'));
+    m.innerHTML = ok ? '✓ Copied “' + esc(b.dataset.q) + '” — open the Telegram pictures group, tap 🔍 and paste · បើកក្រុមរូបភាព Telegram ចុច 🔍 រួច Paste' : esc(b.dataset.q);
+  } else if (b.classList.contains('cmpshare')) {
+    if (!NOTEPIC[oid]) return;
+    const file = picFile(oid);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); } catch (x) {} }
+    else { m.textContent = 'This phone cannot share pictures from the browser — use 💾 Save, then send it from Photos.'; }
+  } else if (b.classList.contains('cmpsave')) {
+    if (!NOTEPIC[oid]) return;
+    const a = document.createElement('a'); a.href = NOTEPIC[oid].url; a.download = 'VHS_' + oid + '_note.jpg'; document.body.appendChild(a); a.click(); a.remove();
+  }
+});
+async function copyText(t, ta) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (x) { try { ta.focus(); ta.select(); const ok = document.execCommand('copy'); ta.setSelectionRange(0, 0); ta.blur(); return ok; } catch (y) { return false; } }
+}
+// edits are kept without redrawing (the text box stays where it is)
+document.addEventListener('input', ev => {
+  const ta = ev.target.closest && ev.target.closest('.cmta'); if (!ta) return;
+  const e = SHIFT && SHIFT.orders[ta.closest('.cmbox').dataset.o]; if (!e) return;
+  e.cmsg = ta.value; LS.set('shift', SHIFT);
+});
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest && ev.target.closest('.cmbox button'); if (!b) return;
+  const box = b.closest('.cmbox'), oid = box.dataset.o, ta = box.querySelector('.cmta'), note = box.querySelector('.cmnote'), e = SHIFT && SHIFT.orders[oid];
+  if (b.classList.contains('cmcopy')) {
+    const ok = await copyText(ta.value, ta);
+    note.style.color = ok ? '' : '#b91c1c';
+    note.textContent = ok ? '✓ Copied — paste it in the customer\'s Messenger chat · បានចម្លង សូម Paste ក្នុង Messenger' : '✗ Could not copy — press and hold the text, Select all, Copy · ចម្លងមិនបាន';
+  } else if (b.classList.contains('cmshare')) {
+    try { await navigator.share({ text: ta.value }); note.style.color = ''; note.textContent = '✓ Shared · បានផ្ញើ'; } catch (x) { if (x && x.name !== 'AbortError') { note.style.color = '#b91c1c'; note.textContent = '✗ Could not share — use 📋 Copy'; } }
+  } else if (b.classList.contains('cmreset')) {
+    if (!confirm('Write the message again? · សរសេរសារឡើងវិញ?\n\nYour changes to the text will be lost. · ការកែរបស់អ្នកនឹងបាត់')) return;
+    if (e) { delete e.cmsg; e.cmsg = shortMsg(oid); LS.set('shift', SHIFT); }
+    ta.value = (e && e.cmsg) || ''; note.textContent = '';
+  } else if (b.classList.contains('cmclose')) {
+    if (box.parentNode && box.parentNode.id === 'cmsg') { hideMsg(); focusScan(); }
+    else { cmOpen.delete(oid); renderShift(); }
+  }
+});
 
 /* ---------- technical quirk: staff checked the item by eye, it IS right, the system will not take it (emergency, no PIN) ---------- */
 function quirkButton(code, label, r) {
@@ -1262,6 +1502,7 @@ $('hold').onclick = () => { if (!cur) return; if (isUnfinished()) askLeave('__re
 
 V.setSyn(LS.get('syn', null));
 render(); renderLog(); renderShift(); applyKbd(); catChip(); fbState();
+shTick();          // 1.7: close a shift left open past 19:00 (phone was off) and show the reminder
 catInit();
 authReady.then(async ok => {
   fbState(); if (!ok) return;
